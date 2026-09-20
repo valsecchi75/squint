@@ -18,7 +18,8 @@
  *   node dist/src/install.js uninstall
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -169,6 +170,10 @@ export function installInto(path: string, installRoot: string): Outcome {
   const next = merge(loaded.settings, installRoot);
   if (next === loaded.settings) return 'unchanged';
   const exact = loaded.missing || isCanonical(loaded.raw, loaded.settings, loaded.format);
+  // A project that has never been configured has no `.claude/` yet, and a fresh
+  // install is exactly that case. Found by running the README's own commands on a
+  // clean clone, where this threw ENOENT.
+  mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, serialize(next, loaded.format), 'utf8');
   return exact ? 'installed' : 'installed-reformatted';
 }
@@ -189,16 +194,34 @@ export function uninstallFrom(path: string): Outcome {
 const USAGE = [
   'squint installer',
   '',
-  '  install [--settings <path>]     add the PreToolUse/Read hook',
-  '  uninstall [--settings <path>]   take it back out',
+  '  install                      turn it on for EVERY project (~/.claude/settings.json)',
+  '  install --project <dir>      turn it on for one project only',
+  '  install --settings <file>    write to an exact settings file',
   '',
-  'Without --settings it writes .claude/settings.json in the current directory.',
+  '  uninstall [same flags]       take it back out of the same place',
+  '',
+  'The default is your user settings, not the current directory. Installing into a',
+  'clone of this repository would do nothing: Claude Code reads the settings of the',
+  'project you are working in, and that is never this one.',
 ].join('\n');
+
+/**
+ * Where the entry goes. The default is the USER settings file, and that choice was
+ * made by a bug: with the current directory as default, the README's own commands
+ * installed the hook into the clone of this repository - where it can never fire,
+ * because Claude Code reads the settings of whatever project you are working in.
+ */
+export function targetOf(argv: readonly string[], cwd: string): string {
+  const s = argv.indexOf('--settings');
+  if (s >= 0 && argv[s + 1]) return resolve(cwd, argv[s + 1] as string);
+  const p = argv.indexOf('--project');
+  if (p >= 0 && argv[p + 1]) return join(resolve(cwd, argv[p + 1] as string), '.claude', 'settings.json');
+  return join(homedir(), '.claude', 'settings.json');
+}
 
 export function cli(argv: readonly string[], cwd: string, installRoot: string): { text: string; code: number } {
   const cmd = argv[0];
-  const i = argv.indexOf('--settings');
-  const path = i >= 0 && argv[i + 1] ? resolve(cwd, argv[i + 1] as string) : join(cwd, '.claude', 'settings.json');
+  const path = targetOf(argv, cwd);
 
   /** Said out loud, never hidden: we changed the shape of a file we did not write. */
   const note = (r: Outcome): string =>

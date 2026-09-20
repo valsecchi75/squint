@@ -7,7 +7,7 @@
 [![alpha](https://img.shields.io/badge/status-alpha-orange)](#what-this-does-not-tell-you)
 [![measured](https://img.shields.io/badge/cost%20on%20reads%20it%20fires%20on-−36%25-3fb950)](#1-does-it-save-anything)
 [![recall](https://img.shields.io/badge/answers%20lost-0%20of%2018-3fb950)](#2-does-it-hide-code)
-[![tests](https://img.shields.io/badge/tests-27%20passing-3fb950)](#develop)
+[![tests](https://img.shields.io/badge/tests-40%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -57,29 +57,58 @@ does not depend on the model cooperating, or on it noticing.
 
 ## Install
 
-Needs **Node ≥ 20** and a [TypeSafe](https://docs.typesafe.ai) API key.
+Needs **Node ≥ 20**, Claude Code, and a [TypeSafe](https://docs.typesafe.ai) API key.
+
+**Four commands.** Clone anywhere you keep tools — the clone is not your project, and
+squint is not installed *into* a project's source.
 
 ```bash
 git clone https://github.com/valsecchi75/squint
 cd squint
 npm install
-npm run install-hook
+npm run install-hook          # turns it on for EVERY project you open
 ```
 
-The key is read from the environment and from nowhere else:
+Then put the key in your environment, permanently — the hook is a separate process and
+inherits it from your shell:
 
 ```bash
-export TYPESAFE_API_KEY=...          # bash / zsh
+# bash / zsh, in ~/.bashrc or ~/.zshrc
+export TYPESAFE_API_KEY=...
 ```
 ```cmd
-set TYPESAFE_API_KEY=...             :: cmd
+:: cmd, once, persisted for your user
+setx TYPESAFE_API_KEY "..."
+```
+```powershell
+# PowerShell, once, persisted for your user
+[Environment]::SetEnvironmentVariable('TYPESAFE_API_KEY','...','User')
 ```
 
-Install it into another project by pointing at that project's settings file:
+Open a **new** terminal so the variable is picked up, then `cd` to any project and use
+Claude Code normally. There is nothing to run per project.
+
+<details>
+<summary><b>Turning it on for one project instead of all of them</b></summary>
+
+<br>
+
+`npm run install-hook` writes to your user settings (`~/.claude/settings.json`), which is
+what makes it apply everywhere. To scope it to a single project:
 
 ```bash
-node dist/src/install.js install --settings /path/to/project/.claude/settings.json
+node dist/src/install.js install --project /path/to/your/project
+node dist/src/install.js install --settings /exact/path/to/settings.json
 ```
+
+`uninstall` takes the same flags and removes it from the same place.
+
+**Do not install it into the clone of this repository.** Claude Code reads the settings of
+the project you are *working in*, which is never this one, so the entry would sit there
+doing nothing. That used to be the default and it was wrong; the default is now your user
+settings.
+
+</details>
 
 Remove it with `npm run uninstall-hook`. The uninstall is a command you can actually run,
 not a paragraph in a README.
@@ -354,7 +383,7 @@ these defaults.
 
 ```bash
 npm run typecheck     # tsc --noEmit
-npm test              # build, then node --test  (27 tests)
+npm test              # build, then node --test  (40 tests)
 npm run build
 ```
 
