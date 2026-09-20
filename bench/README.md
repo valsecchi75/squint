@@ -57,7 +57,7 @@ perfectly. `cache_read` is the cached system prompt, tens of thousands of tokens
 in both arms, and it multiplies whenever a session takes extra turns for reasons unrelated
 to the file being read. That constant and that noise bury the signal.
 
-The grandeur that squint can actually move is `cache_creation_input_tokens`: content the
+The quantity squint can actually move is `cache_creation_input_tokens`: content the
 model has not seen before, which is the file. That is what the tables report as
 **new tokens read**, and `cache_read` is shown beside it rather than mixed into it.
 
@@ -71,7 +71,14 @@ node bench/adversarial.mjs <workspace> <adversarial.jsonl> [nCases]
 node bench/adversarial-report.mjs <adversarial.jsonl> [battery.jsonl]
 node bench/calibrate.mjs <srcDir> <calibration.json>
 node bench/charts.mjs <battery.jsonl> <calibration.json> <outDir>
+node bench/guessability.mjs <workspace> <out.jsonl> [nCases]
+node bench/stale-goal.mjs <srcDir> <out.json>
 ```
+
+`guessability.mjs` is the control that should be run before believing any "no answers
+lost" figure, including this project's own. If the model can answer with every reading
+tool forbidden, the quality column measures the model rather than the mechanism. Here it
+scored 0 of 10, which is what makes the rest of the column mean something.
 
 `<workspace>` holds `on/` and `off/` — and `placebo/` for the adversarial pass — with
 **byte-identical sources**, differing only in `.claude/settings.json`. Verify the hashes
@@ -105,13 +112,3 @@ records refusals as well as narrowings.
 A run is roughly $0.02–$0.11 on `haiku`, depending on the stratum: targeted reads are
 cheap, open-ended exploration is not. The calibration is cents, because it never starts a
 session. Budget the A/B, not the calibration.
-
-```bash
-node bench/guessability.mjs <workspace> <out.jsonl> [nCases]
-node bench/stale-goal.mjs <srcDir> <out.json>
-```
-
-`guessability.mjs` is the control that should be run before believing any "no answers
-lost" figure, including this project's own. If the model can answer with every reading
-tool forbidden, the quality column measures the model rather than the mechanism. Here it
-scored 0 of 10, which is what makes the rest of the column mean something.
