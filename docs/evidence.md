@@ -147,6 +147,45 @@ construction, and the honest thing to do is measure your own ratio before enabli
 
 ---
 
+## 4-bis. The free-form test, which did not work
+
+Everything in sections 1 to 3 asks Claude to read a **named** file. That is the case the
+hook is built for, and it is not obviously the case that dominates a working day. So two
+open-ended, multi-file questions were put to both arms with `Read`, `Grep`, `Glob` and
+`Bash` all allowed, in a directory containing 29 real source files.
+
+**It produced no comparison, and the reasons are worth more than the numbers would have
+been.**
+
+| run | arm | what the agent actually did | narrowings |
+|---|---|---|---:|
+| R1 | off | `Glob` ×1, `Grep` ×2, `Read` ×3 | 0 |
+| R1 | on | delegated the whole job to a **subagent** (`Agent` ×1) | **0** |
+| R2 | off | invoked a **skill**, then stopped to ask for a git repository | 0 |
+| R2 | on | same skill, same refusal | 0 |
+
+- **R2 is void in both arms.** The prompt mentioned a security review, which triggered a
+  skill that expects a git repository; the working directory was not one. Nothing about
+  the hook was exercised. A prompt that summons a skill is not a test of a read hook.
+- **R1 has an uncontrolled confound.** The ON arm delegated to a subagent, so the main
+  session never called `Read` at all, and the run cost *more* ($0.160 against $0.089) for
+  reasons that have nothing to do with narrowing. With one run per arm, nothing separable.
+- **Not one narrowing happened in four runs.** In the OFF arm that is expected. In the ON
+  arm it means the hook never saw a `Read` of an eligible file - the agent reached for
+  `Grep`, for a subagent, or for a skill instead.
+
+**What this does and does not establish.** It does not establish that the hook is useless
+in free-form work - four runs, two of them void, cannot establish anything. It does
+establish that **"Claude reads a large file directly" is not a safe default assumption**
+about how an agent goes about an open-ended question, and therefore that the −36% of §1
+applies to a slice of real work whose size is **unknown**.
+
+Measuring that slice properly needs many real sessions with the ledger running, counting
+how often an eligible `Read` happens at all. That is the obvious next experiment and it
+has not been done.
+
+---
+
 ## 5. What was not measured
 
 - **Only one model.** Everything here ran on `claude-haiku-4-5`. The mechanism is
