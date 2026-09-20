@@ -9,3 +9,6 @@ dist/
 .env
 .env.*
 Secrets/
+
+# Handoff locale: contiene percorsi della macchina, non va pubblicato
+docs/NEXT-SESSION-PROMPT.md
