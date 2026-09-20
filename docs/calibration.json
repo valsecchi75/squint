@@ -1,0 +1,444 @@
+[
+  {
+    "file": "report.ts",
+    "trueLine": 388,
+    "goal": "calcolare un percentile scegliendo un valore osservato invece di interpolare fra due",
+    "totalLines": 1307,
+    "conf": 0.47,
+    "exists": 0.93,
+    "picked": 381,
+    "lineError": 7,
+    "window": {
+      "offset": 251,
+      "limit": 261
+    },
+    "recall": true,
+    "inTok": 21901,
+    "elapsedMs": 1870
+  },
+  {
+    "file": "report.ts",
+    "trueLine": 420,
+    "goal": "raccogliere le latenze dai record e costruirne le statistiche",
+    "totalLines": 1307,
+    "conf": 0.31,
+    "exists": 0.94,
+    "picked": 431,
+    "lineError": 11,
+    "window": {
+      "offset": 301,
+      "limit": 261
+    },
+    "recall": true,
+    "inTok": 21900,
+    "elapsedMs": 1464
+  },
+  {
+    "file": "report.ts",
+    "trueLine": 614,
+    "goal": "confrontare il modello deciso dal routing con quello che ha davvero eseguito",
+    "totalLines": 1307,
+    "conf": 0.3,
+    "exists": 0.88,
+    "picked": 691,
+    "lineError": 77,
+    "window": {
+      "offset": 561,
+      "limit": 261
+    },
+    "recall": true,
+    "inTok": 21899,
+    "elapsedMs": 826
+  },
+  {
+    "file": "report.ts",
+    "trueLine": 751,
+    "goal": "calcolare la dispersione delle dimensioni dei task",
+    "totalLines": 1307,
+    "conf": 0.54,
+    "exists": 0.82,
+    "picked": 731,
+    "lineError": 20,
+    "window": {
+      "offset": 601,
+      "limit": 261
+    },
+    "recall": true,
+    "inTok": 21894,
+    "elapsedMs": 535
+  },
+  {
+    "file": "report.ts",
+    "trueLine": 912,
+    "goal": "inserire i separatori delle migliaia in un numero da stampare",
+    "totalLines": 1307,
+    "conf": 0.66,
+    "exists": 0.92,
+    "picked": 911,
+    "lineError": 1,
+    "window": {
+      "offset": 781,
+      "limit": 261
+    },
+    "recall": true,
+    "inTok": 21900,
+    "elapsedMs": 767
+  },
+  {
+    "file": "report.ts",
+    "trueLine": 1088,
+    "goal": "comporre le righe di testo che descrivono l adozione del routing",
+    "totalLines": 1307,
+    "conf": 0.24,
+    "exists": 0.8,
+    "picked": 1081,
+    "lineError": 7,
+    "window": {
+      "offset": 951,
+      "limit": 261
+    },
+    "recall": true,
+    "inTok": 21900,
+    "elapsedMs": 482
+  },
+  {
+    "file": "report.ts",
+    "trueLine": 1168,
+    "goal": "trasformare il modello del report nella stringa finale da stampare",
+    "totalLines": 1307,
+    "conf": 0.63,
+    "exists": 0.91,
+    "picked": 1161,
+    "lineError": 7,
+    "window": {
+      "offset": 1031,
+      "limit": 261
+    },
+    "recall": true,
+    "inTok": 21898,
+    "elapsedMs": 1029
+  },
+  {
+    "file": "cli.ts",
+    "trueLine": 136,
+    "goal": "interpretare gli argomenti passati sulla riga di comando",
+    "totalLines": 1041,
+    "conf": 0.64,
+    "exists": 0.95,
+    "picked": 141,
+    "lineError": 5,
+    "window": {
+      "offset": 37,
+      "limit": 208
+    },
+    "recall": true,
+    "inTok": 17586,
+    "elapsedMs": 450
+  },
+  {
+    "file": "cli.ts",
+    "trueLine": 282,
+    "goal": "spiegare per quali ragioni e stato scelto un certo tier",
+    "totalLines": 1041,
+    "conf": 0.84,
+    "exists": 0.51,
+    "picked": 281,
+    "lineError": 1,
+    "window": {
+      "offset": 177,
+      "limit": 208
+    },
+    "recall": true,
+    "inTok": 17586,
+    "elapsedMs": 654
+  },
+  {
+    "file": "cli.ts",
+    "trueLine": 370,
+    "goal": "raccogliere le evidenze deterministiche dagli argomenti",
+    "totalLines": 1041,
+    "conf": 0.18,
+    "exists": 0.61,
+    "picked": 361,
+    "lineError": 9,
+    "window": {
+      "offset": 257,
+      "limit": 208
+    },
+    "recall": true,
+    "inTok": 17589,
+    "elapsedMs": 489
+  },
+  {
+    "file": "cli.ts",
+    "trueLine": 679,
+    "goal": "mostrare l esito di un controllo deterministico gia eseguito",
+    "totalLines": 1041,
+    "conf": 0.71,
+    "exists": 0.87,
+    "picked": 731,
+    "lineError": 52,
+    "window": {
+      "offset": 627,
+      "limit": 208
+    },
+    "recall": true,
+    "inTok": 17589,
+    "elapsedMs": 689
+  },
+  {
+    "file": "cli.ts",
+    "trueLine": 897,
+    "goal": "produrre il testo del rapporto sui token spesi",
+    "totalLines": 1041,
+    "conf": 0.71,
+    "exists": 0.58,
+    "picked": 891,
+    "lineError": 6,
+    "window": {
+      "offset": 787,
+      "limit": 208
+    },
+    "recall": true,
+    "inTok": 17583,
+    "elapsedMs": 483
+  },
+  {
+    "file": "cli.ts",
+    "trueLine": 1013,
+    "goal": "punto di ingresso che smista i sottocomandi",
+    "totalLines": 1041,
+    "conf": 0.9,
+    "exists": 0.95,
+    "picked": 971,
+    "lineError": 42,
+    "window": {
+      "offset": 833,
+      "limit": 208
+    },
+    "recall": true,
+    "inTok": 17584,
+    "elapsedMs": 690
+  },
+  {
+    "file": "install-settings.ts",
+    "trueLine": 100,
+    "goal": "comporre la stringa di comando che lancia l hook",
+    "totalLines": 738,
+    "conf": 0.93,
+    "exists": 0.92,
+    "picked": 101,
+    "lineError": 1,
+    "window": {
+      "offset": 26,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 12193,
+    "elapsedMs": 490
+  },
+  {
+    "file": "install-settings.ts",
+    "trueLine": 229,
+    "goal": "togliere la mappa degli hook quando non resta nessuna voce",
+    "totalLines": 738,
+    "conf": 0.73,
+    "exists": 0.81,
+    "picked": 221,
+    "lineError": 8,
+    "window": {
+      "offset": 146,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 12193,
+    "elapsedMs": 362
+  },
+  {
+    "file": "install-settings.ts",
+    "trueLine": 378,
+    "goal": "trovare la posizione testuale di un valore dentro il JSON grezzo",
+    "totalLines": 738,
+    "conf": 0.86,
+    "exists": 0.89,
+    "picked": 371,
+    "lineError": 7,
+    "window": {
+      "offset": 296,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 12194,
+    "elapsedMs": 458
+  },
+  {
+    "file": "install-settings.ts",
+    "trueLine": 493,
+    "goal": "innestare le voci degli hook nel testo preservando la formattazione",
+    "totalLines": 738,
+    "conf": 0.23,
+    "exists": 0.29,
+    "picked": 281,
+    "lineError": 212,
+    "window": {
+      "offset": 206,
+      "limit": 150
+    },
+    "recall": false,
+    "inTok": 12196,
+    "elapsedMs": 388
+  },
+  {
+    "file": "install-settings.ts",
+    "trueLine": 633,
+    "goal": "scrivere il file delle impostazioni aggiungendo gli hook",
+    "totalLines": 738,
+    "conf": 0.22,
+    "exists": 0.83,
+    "picked": 491,
+    "lineError": 142,
+    "window": {
+      "offset": 416,
+      "limit": 150
+    },
+    "recall": false,
+    "inTok": 12192,
+    "elapsedMs": 420
+  },
+  {
+    "file": "pipeline.ts",
+    "trueLine": 131,
+    "goal": "derivare un identificatore stabile del task",
+    "totalLines": 630,
+    "conf": 0.89,
+    "exists": 0.95,
+    "picked": 131,
+    "lineError": 0,
+    "window": {
+      "offset": 56,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 10449,
+    "elapsedMs": 378
+  },
+  {
+    "file": "pipeline.ts",
+    "trueLine": 216,
+    "goal": "costruire lo stato compatto da mandare al servizio esterno",
+    "totalLines": 630,
+    "conf": 0.41,
+    "exists": 0.9,
+    "picked": 521,
+    "lineError": 305,
+    "window": {
+      "offset": 446,
+      "limit": 150
+    },
+    "recall": false,
+    "inTok": 10452,
+    "elapsedMs": 400
+  },
+  {
+    "file": "pipeline.ts",
+    "trueLine": 337,
+    "goal": "stimare quanto contesto e stato risparmiato",
+    "totalLines": 630,
+    "conf": 0.66,
+    "exists": 0.8,
+    "picked": 331,
+    "lineError": 6,
+    "window": {
+      "offset": 256,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 10449,
+    "elapsedMs": 387
+  },
+  {
+    "file": "pipeline.ts",
+    "trueLine": 419,
+    "goal": "eseguire l analisi completa di un task dall inizio alla fine",
+    "totalLines": 630,
+    "conf": 0.55,
+    "exists": 0.85,
+    "picked": 411,
+    "lineError": 8,
+    "window": {
+      "offset": 336,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 10453,
+    "elapsedMs": 423
+  },
+  {
+    "file": "escalation.ts",
+    "trueLine": 69,
+    "goal": "dire se un tier e superiore a un altro",
+    "totalLines": 508,
+    "conf": 0.97,
+    "exists": 0.95,
+    "picked": 61,
+    "lineError": 8,
+    "window": {
+      "offset": 1,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 8529,
+    "elapsedMs": 365
+  },
+  {
+    "file": "escalation.ts",
+    "trueLine": 188,
+    "goal": "decidere se il task va portato a un livello superiore",
+    "totalLines": 508,
+    "conf": 0.34,
+    "exists": 0.89,
+    "picked": 61,
+    "lineError": 127,
+    "window": {
+      "offset": 1,
+      "limit": 150
+    },
+    "recall": false,
+    "inTok": 8532,
+    "elapsedMs": 409
+  },
+  {
+    "file": "escalation.ts",
+    "trueLine": 428,
+    "goal": "contare quante volte si e gia saliti di livello",
+    "totalLines": 508,
+    "conf": 0.79,
+    "exists": 0.9,
+    "picked": 421,
+    "lineError": 7,
+    "window": {
+      "offset": 346,
+      "limit": 150
+    },
+    "recall": true,
+    "inTok": 8532,
+    "elapsedMs": 377
+  },
+  {
+    "file": "escalation.ts",
+    "trueLine": 468,
+    "goal": "applicare l escalation e produrne il record",
+    "totalLines": 508,
+    "conf": 0.24,
+    "exists": 0.95,
+    "picked": 351,
+    "lineError": 117,
+    "window": {
+      "offset": 276,
+      "limit": 150
+    },
+    "recall": false,
+    "inTok": 8530,
+    "elapsedMs": 433
+  }
+]

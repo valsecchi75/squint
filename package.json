@@ -1,0 +1,19 @@
+{
+  "name": "jev-narrow",
+  "version": "0.1.0-alpha.1",
+  "description": "A Claude Code hook that narrows a Read of a large file to the part that answers what you asked, using TypeSafe's Jev. Measured: -36% cost on the reads it fires on, no answer lost.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "files": ["dist/src", "README.md", "LICENSE", "docs"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test \"dist/test/**/*.test.js\"",
+    "install-hook": "npm run build && node dist/src/install.js install",
+    "uninstall-hook": "node dist/src/install.js uninstall"
+  },
+  "keywords": ["claude-code", "hook", "context", "tokens", "typesafe", "jev"],
+  "dependencies": { "@typesafe-ai/sdk": "^0.6.0" },
+  "devDependencies": { "@types/node": "^24.13.6", "typescript": "^5.9.3" }
+}
