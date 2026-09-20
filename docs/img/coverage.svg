@@ -1,26 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 210" width="720" height="210" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif">
-  <style>
-    .t{fill:#8b949e;font-size:12px} .lbl{fill:#8b949e;font-size:11px} .sm{fill:#8b949e;font-size:10px}
-    .on{fill:#3fb950} .off{fill:#6e7681} .dim{fill:#6e7681;opacity:.35}
-  </style>
-  <text x="0" y="14" class="t" font-weight="600">What the saving is proportional to</text>
-  <text x="0" y="30" class="lbl">A -36% on the reads it fires on is not -36% on a working day. Two gates come first.</text>
-
-  <text x="0" y="60" class="lbl">files large enough to be eligible</text>
-  <rect x="230" y="48" width="78" height="16" class="on"/><rect x="308" y="48" width="390" height="16" class="dim"/>
-  <text x="704" y="61" class="sm" text-anchor="end" fill="#3fb950">40 of 230 — about 1 in 6</text>
-
-  <text x="0" y="96" class="lbl">of those, narrowed at the 0.60 floor</text>
-  <rect x="230" y="84" width="252" height="16" class="on"/><rect x="482" y="84" width="216" height="16" class="dim"/>
-  <text x="704" y="97" class="sm" text-anchor="end" fill="#3fb950">14 of 26 targets</text>
-
-  <text x="0" y="132" class="lbl">cost saved on a read it fires on</text>
-  <rect x="230" y="120" width="168" height="16" class="on"/><rect x="398" y="120" width="300" height="16" class="dim"/>
-  <text x="704" y="133" class="sm" text-anchor="end" fill="#3fb950">-36%</text>
-
-  <text x="0" y="168" class="lbl">of that gain, spent on the Jev call</text>
-  <rect x="230" y="156" width="22" height="16" fill="#d29922"/><rect x="252" y="156" width="446" height="16" class="dim"/>
-  <text x="704" y="169" class="sm" text-anchor="end" fill="#d29922">4.7%</text>
-
-  <text x="0" y="200" class="lbl">Measure your own eligibility ratio before expecting much: on a codebase of small modules it approaches zero.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif">
+<text x="0" y="14" fill="#8b949e" font-size="11" font-weight="600">A cosa e' proporzionale il risparmio</text><text x="0" y="30" fill="#8b949e" font-size="11">Il -36% vale sulle letture su cui l'hook scatta, non sulla giornata di lavoro.</text><rect x="30" y="58" width="115" height="26" fill="#3fb950"/><rect x="145" y="58" width="545" height="26" fill="#6e7681" opacity="0.5"/><text x="30" y="50" fill="#3fb950" font-size="11" font-weight="600">40 file idonei</text><text x="153" y="50" fill="#8b949e" font-size="11">190 file che l'hook non puo' toccare</text><text x="30" y="102" fill="#8b949e" font-size="11">40 file su 230 passano il cancello di taglia (&gt;= 400 righe e &lt; 80.000 byte): circa uno su 6.</text><text x="30" y="120" fill="#8b949e" font-size="11">Su un repository di moduli piccoli il risparmio tende a zero per costruzione.</text><text x="30" y="144" fill="#8b949e" font-size="11" font-weight="600">E questo e' il limite SUPERIORE: conta i file idonei, non le volte in cui un agente</text><text x="30" y="160" fill="#8b949e" font-size="11" font-weight="600">sceglie davvero di leggerne uno per intero invece di cercare con Grep o delegare.</text>
 </svg>

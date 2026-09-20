@@ -5,8 +5,10 @@
 **Claude reads the part of the file that answers your question, not the whole file.**
 
 [![alpha](https://img.shields.io/badge/status-alpha-orange)](#what-this-does-not-tell-you)
-[![measured](https://img.shields.io/badge/cost%20on%20reads%20it%20fires%20on-−36%25-3fb950)](#1-does-it-save-anything)
-[![recall](https://img.shields.io/badge/answers%20lost-0%20of%2018-3fb950)](#2-does-it-hide-code)
+[![tokens](https://img.shields.io/badge/new%20tokens%20on%20reads%20it%20fires%20on-−47%25-3fb950)](#1-does-it-save-anything)
+[![cost](https://img.shields.io/badge/cost%20on%20those%20reads-−37%25-3fb950)](#1-does-it-save-anything)
+[![recall](https://img.shields.io/badge/target%20inside%20the%20window-19%20of%2019-3fb950)](#2-does-it-hide-code)
+[![runs](https://img.shields.io/badge/measured%20on-130%20paired%20runs-3fb950)](#the-evidence)
 [![tests](https://img.shields.io/badge/tests-61%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -205,6 +207,18 @@ Everything below was measured on 2026-09-20, Claude Code `2.1.110`, model
 `claude-haiku-4-5`. Raw data: [`docs/calibration.json`](docs/calibration.json). Method and
 caveats: [`docs/evidence.md`](docs/evidence.md).
 
+Round two: **100 paired runs** across five strata, plus a **30-run adversarial pass**
+built to break the result. Raw data is published, not summarised:
+[`docs/data/battery.jsonl`](docs/data/battery.jsonl),
+[`docs/data/adversarial.jsonl`](docs/data/adversarial.jsonl),
+[`docs/calibration.json`](docs/calibration.json). The harness is
+[`bench/`](bench/README.md). **11 sessions were discarded and the reasons are written
+down** — see [`docs/evidence.md`](docs/evidence.md) §0.
+
+What was analysed and deliberately **not** built:
+[`docs/optimizations.md`](docs/optimizations.md) — five of eleven ideas refuted by the
+data, including two that looked obviously right.
+
 Two labels, never mixed. **ACTUAL** = read from a response or a log. **ESTIMATED** =
 computed with a formula printed beside it. No percentage appears without its baseline.
 
@@ -216,21 +230,64 @@ analysis — so every question is its own control.
 
 ![Paired A/B results](docs/img/ab.svg)
 
-| population | pairs | mean delta | within-pair spread | verdict |
+**Large files, one question, hook fired — 19 pairs.** The only row that describes the
+mechanism.
+
+| per run | without squint | with squint | difference | verdict |
 |---|---:|---:|---:|---|
-| **Large files, hook fired** | 9 | **−37.3%** | 10.4% | separates, 3.6× the spread |
+| **new tokens read** | 21,292 | **10,775** | **−47.5%** ±9.0% | separates, 5.3× the spread |
+| **cost** | $0.0385 | **$0.0235** | **−36.8%** ±13.3% | separates, 2.8× the spread |
+| **wall-clock time** | 15.8 s | 13.5 s | −0.5% ±35.9% | **null** |
+| answers correct | 17/19 | **18/19** | — | nothing lost |
+| tokens spent at Jev | 0 | 14,965 | — | 19 calls, 19 sessions |
+
+Cost fell in **19 of 19** pairs, new tokens fell in **19 of 19**, and the window contained
+the true line in **19 of 19**.
+
+**The rows that make that one believable** are the ones where the hook cannot act:
+
+| population | pairs | cost delta | fired | verdict |
+|---|---:|---:|---:|---|
+| Large files, hook did not fire | 1 | −0.3% | 0/1 | **null** |
+| **Small files** (< 400 lines) | 10 | +6.8% ±16.0% | **0/10** | **null ✓** |
+| **Huge files** (> 80,000 bytes) | 4 | +23.0% ±57.5% | **0/4** | **null ✓** |
+
+Two independent gates, no separation at either. Had they separated, the saving on large
+files would not have been attributable to the narrowing.
+
+**Time does not improve, and the badge does not claim it does.** squint buys tokens, not
+speed: it adds a ~1.5 s call and removes reading time, and the net is indistinguishable
+from zero.
+
+**The saving moves the bill, it does not delete it.** The ~10,500 tokens Claude does not
+read become ~15,000 tokens read by Jev. They cost far less — the ratio is about 27:1 —
+but they are a second vendor and a second invoice.
+
+> **Measure `cache_creation_input_tokens`, not total input tokens.** Summing them with
+> `cache_read` reports *null* on data where the mechanism works perfectly: `cache_read` is
+> the cached system prompt, tens of thousands of tokens identical in both arms, and it
+> moves for reasons that have nothing to do with the file. See
+> [`docs/evidence.md`](docs/evidence.md) §1.
+
+<details>
+<summary><b>Round one — 12 pairs, kept so the second round can be checked against it</b></summary>
+
+<br>
+
+| population | pairs | mean delta | spread | verdict |
+|---|---:|---:|---:|---|
+| **Large files, hook fired** | 9 | **−37.3%** | 10.4% | separates, 3.6× |
 | Large files, hook did not fire | 3 | +1.0% | 12.3% | null |
 | Large files, all together | 12 | −27.7% | 20.1% | separates, 1.4× |
 | **Small files — negative control** | 6 | **−2.5%** | 6.3% | **null ✓** |
 
-**Answer quality: 18 of 18 correct in both arms, every stratum.**
-
-**The row that makes the rest believable is the last one.** Files under 400 lines cannot be
-narrowed, so the arms must not separate there. They do not. Had they separated, the saving
-on large files would not have been attributable to the narrowing.
-
 **The row never to quote alone is the third.** `−27.7%` averages two populations that
 behave in opposite ways and describes neither.
+
+Round one's post-fix figure was **−36.0%** where it fires. Round two's **−36.8%** on 19
+pairs sits inside that interval, hours later, on rebuilt instrumentation.
+
+</details>
 
 <details>
 <summary><b>The bug this battery found, and the before/after</b></summary>
@@ -309,14 +366,67 @@ fifth of the file, centred on the pick, so it forgives about ±75.
 
 | | value | label |
 |---|---:|---|
-| per narrowing | 21,932 input tokens · 1.5 s | ACTUAL |
-| per narrowing, in money | $0.00092 | ESTIMATED |
-| gross saving on a read it fires on | $0.0197 | ACTUAL |
-| **share of the gain spent on the call** | **4.7%** | derived |
+| per narrowing, across 31 calls | 14,408 input tokens · 1.5 s | ACTUAL |
+| per narrowing, in money | $0.00060 | ESTIMATED |
+| gross saving on a read it fires on | $0.0150 | ACTUAL |
+| **share of the gain spent on the call** | **4.0%** | derived |
 
-**On the repository this was built against, the size gate alone leaves out five files in
-six** (40 eligible of 230). That ratio, not the −36%, is what a saving on a real working
-day is proportional to.
+> Round one published **21,932** tokens per call. That figure is real but it is the cost
+> on the *largest* file in the corpus. Measured across the files an agent actually opens,
+> the average is **14,408** — 63% of it.
+
+**The size gate alone leaves out five files in six** (40 eligible of 230 on the repository
+this was built against). And eligibility is only the ceiling. Round two measured how often
+an eligible read actually happens:
+
+| what you are doing | reads narrowed |
+|---|---:|
+| you name a large file and ask for one thing | **19/20** |
+| you ask for **two** things far apart in the same file | **2/8** |
+| you ask an open-ended question and name no file | **1/8** |
+
+**That last row is the honest headline for a working day.** The −37% is real and it
+applies to a narrow situation. On open-ended work, over 29 real source files, an
+in-session agent produced a narrowable read once in eight sessions.
+
+### 4. Trying to break it
+
+A result only ever tested by the experiment built to find it has not been tested. Two
+attacks, predictions written before the runs, 30 runs on the same ten cases.
+
+**Attack 1 — was it just the running order?** Every pair in the battery runs `off` first.
+Prompt caching persists between runs, so the "saving" could be the advantage of going
+second. Re-run with `on` first:
+
+| | forward (`off` → `on`) | **reversed** (`on` → `off`) |
+|---|---:|---:|
+| new tokens | −47.5% ±9.0% | **−37.4% ±20.9%** |
+| cost | −36.8% ±13.3% | **−30.2% ±17.0%** |
+
+**It survives — and it shrinks.** Running second is worth something. The true effect is
+somewhere around **−30% to −37%**, and the headline sits at the optimistic end of it.
+
+**Attack 2 — was it the compression, or the aim?** A third arm mounts a sham hook: same
+gates, **same window size**, position picked from a hash of the filename. It never sees
+the goal. Predicted hit rate from geometry, written down first: 2 in 10. Measured: 2 in 10.
+
+| per run | without squint | **squint** | **placebo** |
+|---|---:|---:|---:|
+| Reads issued | 1.1 | **1.1** | **1.8** |
+| turns | 2.2 | **2.2** | **3.1** |
+| cost vs. without | — | **−30.2%** | **−4.9% → null** |
+| target inside the window | — | 8/10 | 2/10 |
+| answers correct | 9/10 | 9/10 | **10/10** |
+
+**The saving comes from the aim, not the compression.** The placebo compresses identically
+and saves *nothing*: the agent sees the window lacks what it needs and reads again — 1.8
+reads instead of 1.1 — and the recovery eats the entire gain.
+
+**And "no answers lost" is weaker than it looks.** The placebo missed the target in 8 of
+10 windows and still answered 10 of 10, better than either real arm. The quality column
+does not prove the window was right; it proves **the escape hatch works**. That is a
+genuine property — squint tells the agent how to undo it, and the agent does — but it is
+not the property the number appears to claim.
 
 ---
 
@@ -326,8 +436,8 @@ The hook refuses far more often than it acts. That is the design, not a shortfal
 
 | it leaves the read alone when | why |
 |---|---|
-| the file is under **400 lines** | the call would cost more than the narrowing saves |
-| the file is over **80,000 bytes** | it would need splitting, and confidences from different sections are not comparable — measured upstream, that path loses the target 3 times in 11 |
+| the file is under **400 lines** | inherited, and **not justified by cost**: the break-even is ~156 lines ([`optimizations.md`](docs/optimizations.md) O6). What 400 buys is margin against a risk nobody has measured below 508 lines |
+| the file is over **80,000 bytes** | it would need splitting, and confidences from different sections are not comparable — measured upstream, that path loses the target 3 times in 11. Claude Code's own ceiling (25,000 tokens ≈ 84,900 bytes) sits just above it |
 | the agent already set `offset` or `limit` | that is its own decision about this file, and overriding it would break the escape hatch too |
 | the transcript yields no goal | there is nothing to narrow *towards* |
 | confidence is under **0.60** | see [§2](#2-does-it-hide-code) |
@@ -410,18 +520,28 @@ these defaults.
 
 ## What this does not tell you
 
-- **In a free-form task, the agent often does not call `Read` at all.** Tried on two
-  open-ended multi-file questions, one run delegated the whole job to a subagent and
-  another invoked a skill; neither produced a single narrowing. **That test was
-  inconclusive and is reported as inconclusive.** Everything measured above is the case
-  where Claude reads a named large file. How much of a real day that is, is not known.
+- **In free-form work it rarely fires: once in eight sessions.** Everything headline above
+  is the case where Claude reads a *named* large file. That case is not most of a working
+  day, and now the gap is measured rather than guessed.
+- **The goal can be stale, and the battery cannot see it.** The hook aims the window at
+  the last thing *you* typed. Every measured session has exactly one user turn, so the
+  goal is always fresh. In a real session it can be twenty turns back and about something
+  else, and the window would be aimed at it anyway. **This is the largest risk in the
+  design and it is unmeasured.**
+- **Delegation is excluded, by choice.** A free agent calls a subagent that is not
+  confined to the working directory — one run answered by citing a file from an unrelated
+  project elsewhere on disk. The open-ended numbers therefore describe an agent working
+  in-session.
+- **Time is not improved.** −0.5% with a spread of 35.9%: null. squint buys tokens, not
+  speed.
 - **One model.** All of it ran on `claude-haiku-4-5`. The mechanism is model-independent in
   principle — it changes what the tool returns, not what the model decides — but the size
   of the effect is not.
 - **One kind of task.** "Find a function in a large file" is the case this is built for.
   Reads that skim rather than seek are not represented.
-- **Small n.** Twelve pairs in the A/B, 26 targets in the calibration. The paired design is
-  what lets that separate signal from noise; it is not enough to characterise a tail.
+- **Small n where it is smallest.** Nineteen fired pairs carry the headline, four the
+  oversize control, eight the open-ended rate. The paired design separates signal from
+  noise at those sizes; it does not characterise a tail.
 - **One repository.** The one-file-in-six eligibility rate is a property of that codebase.
 - **Windows-first.** Developed and measured on Windows 11, Node 24. Nothing in it is
   platform-specific, and nothing in it has been measured elsewhere.
@@ -462,5 +582,7 @@ independent TypeScript implementation, the ledger, the installer, and a fresh ca
 of the confidence floor on a different codebase.
 
 Decisions come from [Jev](https://docs.typesafe.ai), TypeSafe's System One model.
+
+Measurement, adversarial testing and this write-up: **[agent1.it](https://agent1.it)**.
 
 MIT — see [LICENSE](LICENSE).

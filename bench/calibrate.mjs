@@ -1,5 +1,5 @@
 /**
- * calibrate.mjs — taratura del pavimento di confidenza `readNarrowing.minConfidence`.
+ * calibrate.mjs — taratura del pavimento di confidenza `narrow.minConfidence`.
  *
  * LA DOMANDA: a quale confidenza la finestra smette di contenere la riga giusta?
  *
@@ -15,24 +15,36 @@
  *
  * Il risultato non e' "quale soglia da' piu' restringimenti" — quella e' zero — ma
  * "quale soglia separa le finestre buone da quelle che perdono il bersaglio".
+ *
+ * OLTRE ALLA CONFIDENZA, questo script registra la DISTRIBUZIONE COMPLETA sui chunk.
+ * La confidenza scalare dice quanto il primo chunk e' probabile; non dice quanto e'
+ * ISOLATO. Due distribuzioni con la stessa confidenza — una con un secondo chunk
+ * quasi altrettanto probabile, una senza — non sono lo stesso grado di certezza, e
+ * oggi l'hook non sa distinguerle. I campi `top1`, `top2` e `gap` esistono per poter
+ * rispondere con i dati, non a naso.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const REPO = process.argv[2];
-const OUT = process.argv[3];
-const DIST = join(REPO, '.jef', 'dist', 'src');
+const SRC = process.argv[2];   // la directory dei sorgenti su cui tarare
+const OUT = process.argv[3];   // dove scrivere il JSON dei risultati
+// I moduli di squint stesso, non quelli di un altro progetto: questa taratura deve
+// poter girare da un clone del pacchetto. La versione precedente importava da
+// `<repo>/.jef/dist`, una directory che nel repository pubblicato non esiste.
+//
+// `fileURLToPath` e non `.pathname`: su un percorso con spazi - e su Windows ce ne
+// sono, "Program Files" per cominciare - `.pathname` li lascia codificati come %20 e
+// il caricamento fallisce su una directory che esiste.
+const DIST = join(fileURLToPath(new URL('..', import.meta.url)), 'dist', 'src');
 
-// Su Windows un percorso assoluto non e' una URL ESM valida: va convertito in file://
 const mod = (name) => import(pathToFileURL(join(DIST, name)).href);
-const { buildChunks, buildQuestions, windowFor } = await mod('read-narrower.js');
-const { callJev } = await mod('typesafe-client.js');
-const { loadConfig } = await mod('load-config.js');
+const { buildChunks, buildQuestions, windowFor } = await mod('policy.js');
+const { askJev } = await mod('jev.js');
+const { loadConfig } = await mod('config.js');
 
-const config = loadConfig(REPO);
-const narrowCfg = config.readNarrowing;
+const { narrow, jev } = loadConfig(process.cwd());
 
 /** (file, riga vera, obiettivo). Scritti leggendo il codice, mai chiesti a un modello. */
 const TARGETS = [
@@ -70,10 +82,9 @@ const TARGETS = [
 
 const results = [];
 for (const [file, trueLine, goal] of TARGETS) {
-  const abs = join(REPO, '.jef', 'src', file);
-  const src = readFileSync(abs, 'utf8');
+  const src = readFileSync(join(SRC, file), 'utf8');
   const lines = src.split('\n');
-  const { chunks, criteria } = buildChunks(lines, narrowCfg);
+  const { chunks, criteria } = buildChunks(lines, narrow);
 
   const state = {
     goal,
@@ -82,23 +93,40 @@ for (const [file, trueLine, goal] of TARGETS) {
       chunks: Object.fromEntries(Object.entries(chunks).map(([id, c]) => [id, { start_line: c.startLine, text: c.text }])),
     },
   };
-  const cfg = { ...config, typesafe: { ...config.typesafe, timeoutMs: narrowCfg.timeoutMs } };
-  const r = await callJev(state, buildQuestions(criteria), cfg, { env: process.env });
+  const r = await askJev(state, buildQuestions(criteria), jev, narrow.timeoutMs, process.env);
 
   if (r.status !== 'ok') {
     results.push({ file, trueLine, goal, status: r.status, reason: r.reason, elapsedMs: r.elapsedMs });
     console.log(`${file}:${trueLine}  FALLITA (${r.reason})`);
     continue;
   }
-  const where = r.response.answers['where'];
-  const exists = r.response.answers['exists'];
+  const where = r.answers['where'];
+  const exists = r.answers['exists'];
   const chosen = chunks[where?.choice];
   const picked = chosen?.startLine ?? null;
-  const w = picked ? windowFor(picked, lines.length, narrowCfg) : null;
+  const w = picked ? windowFor(picked, lines.length, narrow) : null;
+
+  // La distribuzione, non solo il suo massimo. `gap` e' il secondo segnale che la
+  // confidenza scalare non porta: quanto il primo chunk stacca il secondo.
+  const probs = where?.probabilities ?? {};
+  const sorted = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+  const top1 = sorted[0]?.[1] ?? null;
+  const top2 = sorted[1]?.[1] ?? null;
+  // Il secondo chunk e' ADIACENTE al primo? Due chunk vicini che si dividono la
+  // probabilita' non sono un'ambiguita': sono una funzione a cavallo del taglio, e
+  // la finestra li contiene entrambi. Senza questa distinzione `gap` punirebbe il
+  // caso piu' innocuo che esista.
+  const idx = (k) => Number(String(k).replace(/^c/, ''));
+  const secondAdjacent = sorted.length > 1 ? Math.abs(idx(sorted[0][0]) - idx(sorted[1][0])) === 1 : null;
+
   const rec = {
     file, trueLine, goal,
     totalLines: lines.length,
     conf: where?.confidence ?? null,
+    top1, top2, gap: top1 !== null && top2 !== null ? top1 - top2 : null,
+    secondAdjacent,
+    nChunks: Object.keys(probs).length,
+    probabilities: probs,
     exists: exists?.noul ?? null,
     picked,
     lineError: picked ? Math.abs(picked - trueLine) : null,
@@ -110,8 +138,8 @@ for (const [file, trueLine, goal] of TARGETS) {
   };
   results.push(rec);
   console.log(
-    `${file}:${trueLine}  conf ${rec.conf?.toFixed(2)}  scelta ${picked} (err ${rec.lineError})  ` +
-    `finestra ${w ? w.offset + '-' + (w.offset + w.limit - 1) : 'n/a'}  recall ${rec.recall}`,
+    `${file}:${trueLine}  conf ${rec.conf?.toFixed(2)}  gap ${rec.gap === null ? 'n/a' : rec.gap.toFixed(2)}  ` +
+    `scelta ${picked} (err ${rec.lineError})  finestra ${w ? w.offset + '-' + (w.offset + w.limit - 1) : 'n/a'}  recall ${rec.recall}`,
   );
 }
 
