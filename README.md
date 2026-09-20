@@ -8,7 +8,7 @@
 [![tokens](https://img.shields.io/badge/new%20tokens%20on%20reads%20it%20fires%20on-−47%25-3fb950)](#1-does-it-save-anything)
 [![cost](https://img.shields.io/badge/cost%20on%20those%20reads-−37%25-3fb950)](#1-does-it-save-anything)
 [![recall](https://img.shields.io/badge/target%20inside%20the%20window-19%20of%2019-3fb950)](#2-does-it-hide-code)
-[![runs](https://img.shields.io/badge/measured%20on-154%20paired%20runs-3fb950)](#the-evidence)
+[![runs](https://img.shields.io/badge/measured%20on-184%20paired%20runs-3fb950)](#the-evidence)
 [![tests](https://img.shields.io/badge/tests-74%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -268,6 +268,34 @@ but they are a second vendor and a second invoice.
 > the cached system prompt, tens of thousands of tokens identical in both arms, and it
 > moves for reasons that have nothing to do with the file. See
 > [`docs/evidence.md`](docs/evidence.md) §1.
+
+<details>
+<summary><b>Same design on a second model — it transfers, and it is cleaner</b></summary>
+
+<br>
+
+`LARGE` and `SMALL` re-run unchanged on **`claude-opus-5`**: same cases, same hand-written
+ground truth, same hash-verified arms. `[ACTUAL]` 30 runs, $4.17.
+
+| | haiku (19 pairs) | **opus (10 pairs)** |
+|---|---:|---:|
+| fire rate on `LARGE` | 19/20 | **10/10** |
+| new tokens read | −47.5% ±9.0% (5.3×) | **−40.2% ±8.4% (4.8×)** |
+| **cost** | −36.8% ±13.3% (2.8×) | **−35.8% ±7.9% (4.5×)** |
+| target inside the window | 19/19 | **10/10** |
+| `SMALL` control | 0/10 fired, null | **0/5 fired, null** |
+| cost per run | $0.0344 | $0.1390 |
+
+**The cost saving is the same number twice** on models that differ fourfold in price. Opus
+is also the cleaner instrument: half the spread on cost, a third on the control, so the
+same effect separates at 4.5× the noise instead of 2.8×.
+
+**One answer was lost on opus, and it is not what it looks like.** `install-settings.ts`,
+true answer at line 493, window 416–565 — it *contained* the answer. The model returned
+the function at line 464 instead, also inside the window. squint did not hide anything;
+the model picked the neighbour. **A correct window is necessary, not sufficient.**
+
+</details>
 
 <details>
 <summary><b>Round one — 12 pairs, kept so the second round can be checked against it</b></summary>
@@ -600,9 +628,10 @@ these defaults.
   in-session.
 - **Time is not improved.** −0.5% with a spread of 35.9%: null. squint buys tokens, not
   speed.
-- **One model.** All of it ran on `claude-haiku-4-5`. The mechanism is model-independent in
-  principle — it changes what the tool returns, not what the model decides — but the size
-  of the effect is not.
+- **Two models now, not one.** The benchmark ran on `claude-haiku-4-5`; the same design
+  was re-run unchanged on `claude-opus-5` (−35.8% ±7.9% cost against −36.8% ±13.3%, fire
+  rate 10/10), and the real-work and consultation tests were opus throughout. The effect
+  transfers. A third model is still unmeasured.
 - **One kind of task.** "Find a function in a large file" is the case this is built for.
   Reads that skim rather than seek are not represented.
 - **Small n where it is smallest.** Nineteen fired pairs carry the headline, four the

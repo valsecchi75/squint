@@ -23,6 +23,7 @@ It is here so the measurements can be re-run rather than believed.
 | `consult.mjs` | squint su una base di conoscenza: consultazione invece di modifica, con e senza la pagina indicata. |
 | `calibrate-docs.mjs` | la taratura del passo di localizzazione su PROSA invece che su codice. Jev soltanto, centesimi. |
 | `stale-goal.mjs` | the failure the battery is blind to: aim the window at an *old* goal and see what it hides. Jev only, cents. |
+| `compare-models.mjs` | lo stesso disegno su due modelli, affiancati, col controllo negativo di ciascuno. |
 | `calibrate.mjs` | at what confidence does the window stop containing the answer? No Claude sessions — only Jev calls, so it costs cents. |
 | `charts.mjs` | regenerates the three SVGs in `docs/img` from the raw data. |
 
@@ -66,7 +67,8 @@ model has not seen before, which is the file. That is what the tables report as
 ## Running it
 
 ```bash
-node bench/run.mjs <workspace> <out.jsonl> [strata] [reps] [firstRep]
+node bench/run.mjs <workspace> <out.jsonl> [strata] [reps] [firstRep]   # MODEL=opus per cambiare modello
+node bench/compare-models.mjs <haiku.jsonl> <opus.jsonl>
 node bench/table.mjs <out.jsonl> [--md]
 node bench/report.mjs <out.jsonl>
 node bench/adversarial.mjs <workspace> <adversarial.jsonl> [nCases]

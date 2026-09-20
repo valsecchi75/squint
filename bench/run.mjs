@@ -50,6 +50,12 @@ const REPS = Number(process.argv[5] ?? 2);
 // La ripetizione di partenza. Serve a spezzare la batteria in piu' invocazioni senza
 // che le coppie si scontrino: `id + rep` e' la chiave del confronto appaiato.
 const REP_FROM = Number(process.argv[6] ?? 1);
+// Il modello. Predefinito `haiku`, che e' quello con cui girarono le 140 run di
+// batteria, avversariale e controllo: il comando di allora produce ancora quei numeri.
+// `MODEL=opus` replica lo stesso disegno sul modello che la gente usa davvero, e il
+// campo `model` finisce nel record cosi' i due insiemi non si possono confondere.
+const MODEL = process.env.MODEL ?? 'haiku';
+const BUDGET = process.env.MAX_BUDGET_USD ?? null;
 
 // I casi e la loro ground truth stanno in cases.mjs, perche' li usa anche il test
 // avversariale (bench/adversarial.mjs) e i due harness DEVONO interrogare gli stessi
@@ -109,14 +115,15 @@ function runOnce(cwd, args) {
 const ONLY = (process.env.ONLY ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const selected = CASES.filter((c) => STRATA.includes(c.stratum) && (ONLY.length === 0 || ONLY.includes(c.id)));
 const total = selected.length * 2 * REPS;
-console.error(`batteria: ${selected.length} casi x 2 bracci x ${REPS} ripetizioni (da rep ${REP_FROM}) = ${total} run`);
+console.error(`batteria: ${selected.length} casi x 2 bracci x ${REPS} ripetizioni (da rep ${REP_FROM}) = ${total} run, modello ${MODEL}`);
 
 let done = 0;
 for (let rep = REP_FROM; rep < REP_FROM + REPS; rep++) {
   for (const c of selected) {
     for (const arm of ['off', 'on']) {
       const cwd = join(WS, arm);
-      const args = ['-p', c.prompt, '--model', 'haiku', '--output-format', 'json'];
+      const args = ['-p', c.prompt, '--model', MODEL, '--output-format', 'json'];
+      if (BUDGET) args.push('--max-budget-usd', BUDGET);
       // Lo strato EXPLORE lascia liberi i tool di ricerca: e' il suo scopo. `Bash` resta
       // permesso apposta - se l'agente preferisce `cat` a `Read`, l'hook non lo vede, e
       // quello E' un risultato da registrare.
@@ -140,7 +147,7 @@ for (let rep = REP_FROM; rep < REP_FROM + REPS; rep++) {
         ? truthLines.every((L) => seen.windows.some((w) => L >= w.from && L <= w.to))
         : null;
       const rec = {
-        rep, id: c.id, stratum: c.stratum, arm,
+        rep, id: c.id, stratum: c.stratum, arm, model: MODEL,
         file: c.file ?? null, fileLines: c.lines ?? null, fileBytes: c.bytes ?? null,
         synthetic: c.synthetic ?? false,
         trueLine: c.line ?? null, trueLines: truthLines.length > 1 ? truthLines : null,

@@ -473,6 +473,62 @@ one sentence:
 
 ---
 
+## 1-bis. The same design on a second model: it transfers, and it is cleaner
+
+Everything in §1 ran on `claude-haiku-4-5`. That was listed under "what was not
+measured", because a mechanism can be model-independent in principle — it changes what
+the tool returns, not what the model decides — and still have an effect size that is not.
+So `LARGE` and `SMALL` were re-run unchanged on **`claude-opus-5`**: same cases, same
+hand-written ground truth, same arms, hash-verified. `[ACTUAL]` 30 runs, $4.17.
+
+| | haiku (19 fired pairs) | **opus (10 fired pairs)** |
+|---|---:|---:|
+| fire rate on `LARGE` | 19/20 | **10/10** |
+| **new tokens read** | −47.5% ±9.0% — separates 5.3× | **−40.2% ±8.4% — separates 4.8×** |
+| **cost** | −36.8% ±13.3% — separates 2.8× | **−35.8% ±7.9% — separates 4.5×** |
+| wall-clock time | −0.5% ±35.9% — null | +9.7% ±23.1% — null |
+| target inside the window | 19/19 | **10/10** |
+| answers correct | 17/19 → 18/19 | 10/10 → **9/10** |
+| `SMALL` control — fired | 0/10 ✓ | **0/5 ✓** |
+| `SMALL` control — cost | +6.8% ±16.0% — null | **+1.9% ±4.7% — null** |
+| cost per run | $0.0344 | $0.1390 |
+
+**The cost saving is the same number twice: −36.8% and −35.8%**, measured hours apart on
+models that differ fourfold in price. The token saving is smaller on opus (−40.2% against
+−47.5%), which is what one would expect from a model that writes more per turn: the file
+is a smaller share of what enters the context.
+
+**Opus is the cleaner instrument.** Its spread is half as wide on cost (7.9% against
+13.3%) and a third as wide on the negative control (4.7% against 16.0%), so the same
+effect separates at **4.5×** the noise instead of 2.8×. A more deterministic model makes
+a paired A/B easier to read, not harder.
+
+### The one answer that was lost, and why it is not what it looks like
+
+`[ACTUAL]` On opus the ON arm answered 9 of 10 against the OFF arm's 10 of 10 — the first
+quality regression in the whole project. It is worth stating exactly, because the safety
+claim of this package rests on recall:
+
+> `A9` · `install-settings.ts`, 738 lines. True answer `graftJefHooks` at line **493**.
+> The window was **416–565** and **contained it** (`recall: true`). The model answered
+> `graftHookGroup` — the function at line **464**, also inside the window.
+
+**squint did not hide the answer; it was in the window, and the model picked the
+neighbour.** Both candidates were visible, with their doc comments. This is a distinct
+failure from the one the confidence floor guards against, and it means something the
+earlier rounds could not show:
+
+> **A correct window is necessary, not sufficient.** Recall says the answer was available.
+> It does not say the model used it.
+
+One observation. It is recorded rather than explained away, and it is the reason the
+quality column is reported beside recall instead of in place of it.
+
+Raw data: [`data/battery-opus.jsonl`](data/battery-opus.jsonl). Re-run the comparison with
+`node bench/compare-models.mjs docs/data/battery.jsonl docs/data/battery-opus.jsonl`.
+
+---
+
 ## 5-bis. Real work: it depends on whether you are *reading* or *editing*
 
 Everything above is a benchmark. Sections 1 to 5 ask one question per session and read one
