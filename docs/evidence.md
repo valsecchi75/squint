@@ -473,6 +473,115 @@ one sentence:
 
 ---
 
+## 5-bis. Real work: it depends on whether you are *reading* or *editing*
+
+Everything above is a benchmark. Sections 1 to 5 ask one question per session and read one
+named file. Real work is not like that, so it was tried: four development tasks on a real
+TypeScript codebase, and eight consultations on a 346-page documentation corpus written by
+third parties. `[ACTUAL]` $6.69 + $4.07, all paired, all hash-verified.
+
+**The result splits cleanly along a line that was not in the design, and it is the most
+useful thing on this page for deciding whether to install squint.**
+
+| | reads the hook saw | narrowed | was the narrowing undone? | cost |
+|---|---:|---:|---|---|
+| **Editing code** (4 tasks) | 31 | **2** | **yes, 2 of 2 — 100% of the file re-read** | null |
+| **Consulting docs, page named** (4) | 3 | **2** | **no, 0 of 2 — 20% of the file read** | −27.4% ±22.2% |
+| **Consulting docs, page not named** (4) | 21 | **0** | — | null |
+
+### Editing: the narrowing is undone
+
+An agent that modifies a file has to understand it, so it reads the rest. Both narrowings
+in the development tasks were completely reversed, and the ledger shows how:
+
+```
+APP1   hook gives    742-939   of 991
+       agent reads     1-200, 200-499, 500-749, 935-991
+       union           1-991   = 100%
+
+P4     hook gives      1-208   of 1041
+       agent reads   208-1041  ← the exact complement, the very next turn
+       union           1-1041  = 100%
+```
+
+The same content entered the context either way, split across more reads, plus a Jev call
+paid for nothing. In APP1 the ON arm's `cache_read` went **up 9.7%**: the narrowing did not
+remove context, it added turns.
+
+**Beware the cost column here.** The negative control — a refactor where the hook made
+**zero** calls and **zero** narrowings — still came out at **−22.1% cost, −27.3% tokens**,
+because the two arms chose different designs (one put a shared type guard in a 698-line
+file, the other created a 9-line one). That is the noise floor of a single development
+pair: **anything under about 22% on one pair is not attributable to anything.**
+
+### Consulting: it holds
+
+Ask a question about a *named* page and the narrowing sticks. Two narrowings, **zero**
+subsequent reads of the same file, 20% of the page read instead of all of it, both answers
+correct, target inside the window both times.
+
+### But only if the page is named
+
+When the agent has to find the page among 346, squint never fires. Of 21 reads it looked
+at: **`agent-set-window` 17**, `file-too-small` 4. An agent that locates a fact with `Grep`
+then reads a 20-line slice — and squint passes explicit windows through by design.
+
+> **The better your retrieval, the less there is to narrow.** This is not a defect; it is
+> the same escape hatch working. But it means a well-indexed second brain is the case where
+> squint helps *least*, and a bare "open this page and answer" is where it helps most.
+
+`[ACTUAL]` One of the eight consultations failed in **both** arms — 42 turns, $0.94 — a
+question the agent could not resolve. It is counted, not excluded.
+
+---
+
+## 5-ter. Does prose locate as well as code? Better — with less margin
+
+The locate step was calibrated a third time, on **16 hand-written targets across five
+documentation pages written by third parties** (plugin docs installed on the machine, not
+this project's own writing). Same method as §2, `[ACTUAL]` 204.405 input tokens, cents.
+
+| | code (52 obs.) | documentation (16 obs.) |
+|---|---:|---:|
+| recall overall | 43/52 — 83% | 14/16 — **88%** |
+| **would narrow at the 0.60 floor** | 26/52 — 50% | **12/16 — 75%** |
+| recall on what it narrows | 100% | **100%** |
+| median pick error | 8 lines | **7 lines** |
+| **worst failure** | 0.41 | **0.59** |
+
+**Structured prose locates better than code and clears the floor half again as often.**
+
+**And the safety margin is nearly gone.** The two failures scored 0.45 and **0.59** against
+a floor of **0.60** — a margin of **0.01**, where code has 0.19. The argument that rejected
+lowering the floor to 0.42 for code applies here in reverse: on documentation the shipped
+floor is only just sufficient, on two observed failures. Anyone running squint over a
+knowledge base should re-calibrate upward on their own corpus, not downward.
+
+### The gate is calibrated for code, and prose exposes it
+
+Requiring **≥400 lines** *and* **<80.000 bytes** together imposes something never written
+down: **the average line must be under 200 bytes.**
+
+| | lines | bytes | bytes/line | can it ever pass? |
+|---|---:|---:|---:|---|
+| TypeScript source | 10.393 | 441.150 | **42** | yes, wide band |
+| structured docs (headings, tables, code blocks) | 1.156 | 69.700 | **60** | yes |
+| flowing prose (`wiki/product/decisions.md`) | 651 | 133.819 | **206** | **never** |
+
+At 206 bytes per line a page hits the byte ceiling *before* reaching the line floor. That
+is not a threshold to retune — it is a geometric impossibility, and it comes from
+calibrating on code.
+
+`[ACTUAL]` eligibility measured across six corpora: TypeScript source 6/29 (21%), our own
+wiki **0/20**, this project's docs 9/65 (14%), bundled skills 11/73 (15%), user skills
+17/83 (20%), installed plugins **203/1257 (16%)**.
+
+**Documentation is about as eligible as code — roughly one page in six — except where the
+writing is flowing prose, where it is never eligible.** Our own wiki scores zero partly
+because it enforces line caps.
+
+---
+
 ## 6. The failure the battery cannot see — measured separately, and it is real
 
 Every session in the battery has exactly **one user turn**, so the goal the hook aims at

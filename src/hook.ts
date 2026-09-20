@@ -61,23 +61,55 @@ export async function readStdin(stream: AsyncIterable<unknown> = process.stdin):
   return Buffer.concat(chunks).toString('utf8');
 }
 
+/** The goal, and how stale it is. */
+export interface Goal {
+  /** The last thing the user actually typed, trimmed and truncated. */
+  text: string;
+  /**
+   * How many assistant turns have happened SINCE the user said it.
+   *
+   * This exists because it names the one failure this hook cannot otherwise see.
+   * `text` is aimed at by every narrowing, but in a real session it can be twenty
+   * turns old and about something else entirely: you ask about the parser, the agent
+   * works, then reads `report.ts` for its own reasons, and the window is aimed at the
+   * parser anyway.
+   *
+   * `[MEASURED]` On eleven hand-built stale pairs the window missed what the read
+   * actually needed 11 times out of 11, and the confidence floor accepted every one of
+   * them - at up to 0.98. Confidence says how sure the model is about which chunk
+   * matches THIS goal; it cannot say whether the goal has anything to do with the read.
+   *
+   * NOTHING BRANCHES ON THIS. It is recorded so the distribution can exist before
+   * anybody picks a cut-off, because a threshold chosen without one is a guess wearing
+   * a number (ERR-028). See docs/evidence.md section 6.
+   */
+  ageTurns: number;
+}
+
 /**
- * The last thing the USER actually typed. Tool results and the agent's own turns are
- * skipped: they say what it has been doing, not what it was asked for.
+ * The last thing the USER actually typed, and how many assistant turns ago.
+ *
+ * Tool results and the agent's own turns are skipped when looking for the text: they
+ * say what it has been doing, not what it was asked for. They are counted, though -
+ * that count IS the staleness.
  *
  * The markers are cut because a system reminder or a slash-command wrapper is noise
  * around the real request. A marker at position zero leaves an empty string, and an
  * empty goal makes the caller pass the Read through - which is the right outcome.
  */
-export function lastUserMessage(transcriptPath: string, maxChars = 600): string {
-  if (transcriptPath === '' || !existsSync(transcriptPath)) return '';
+export function lastUserMessage(transcriptPath: string, maxChars = 600): Goal {
+  const none: Goal = { text: '', ageTurns: 0 };
+  if (transcriptPath === '' || !existsSync(transcriptPath)) return none;
   let raw: string;
   try {
     raw = readFileSync(transcriptPath, 'utf8');
   } catch {
-    return '';
+    return none;
   }
   let last = '';
+  // Assistant turns seen since `last` was set. Reset every time the user speaks again,
+  // because a fresh instruction is a fresh goal however long the agent worked before it.
+  let since = 0;
   for (const line of raw.split('\n')) {
     if (line.trim() === '') continue;
     let o: { type?: unknown; message?: { content?: unknown } };
@@ -86,10 +118,17 @@ export function lastUserMessage(transcriptPath: string, maxChars = 600): string 
     } catch {
       continue;
     }
+    if (o.type === 'assistant') {
+      since += 1;
+      continue;
+    }
     if (o.type !== 'user') continue;
     const content = o.message?.content;
     if (typeof content === 'string') {
-      if (content.trim() !== '') last = content.trim();
+      if (content.trim() !== '') {
+        last = content.trim();
+        since = 0;
+      }
     } else if (Array.isArray(content)) {
       const parts: string[] = [];
       for (const raw2 of content) {
@@ -98,7 +137,10 @@ export function lastUserMessage(transcriptPath: string, maxChars = 600): string 
         parts.push(m.text);
       }
       const joined = parts.join(' ').trim();
-      if (joined !== '') last = joined;
+      if (joined !== '') {
+        last = joined;
+        since = 0;
+      }
     }
   }
   for (const marker of ['<system-reminder>', '<command-name>', '<local-command-stdout>', '<ide_opened_file>']) {
@@ -106,7 +148,7 @@ export function lastUserMessage(transcriptPath: string, maxChars = 600): string 
     if (i >= 0) last = last.slice(0, i);
   }
   last = last.trim();
-  return last.length > maxChars ? last.slice(0, maxChars) : last;
+  return { text: last.length > maxChars ? last.slice(0, maxChars) : last, ageTurns: since };
 }
 
 type Fields = Omit<NarrowRecord, 'timestamp' | 'sessionId' | 'path' | 'totalLines'>;
@@ -179,26 +221,26 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
         path: shown,
         totalLines: lines.length,
         totalBytes: Buffer.byteLength(data, 'utf8'),
-        goal,
+        goal: goal.text,
         excluded: isExcludedPath(filePath),
       },
       narrow,
     );
     if (pre.action === 'pass') {
-      return pass(pre.reason, pre.detail, () => append(projectRoot, record(sessionId, shown, lines.length, { reason: pre.reason })));
+      return pass(pre.reason, pre.detail, () => append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: pre.reason })));
     }
 
     const { chunks, criteria } = buildChunks(lines, narrow);
     if (Object.keys(criteria).length < 2) {
       return pass('file-too-small', 'fewer than two chunks to choose between', () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { reason: 'file-too-small' })),
+        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'file-too-small' })),
       );
     }
 
     // Everything past here costs a call. The goal is the user's own text going to a
     // third party, so it is scrubbed first.
     const state = {
-      goal: scrub(goal),
+      goal: scrub(goal.text),
       file: {
         path: shown,
         chunks: Object.fromEntries(Object.entries(chunks).map(([id, c]) => [id, { start_line: c.startLine, text: c.text }])),
@@ -208,7 +250,7 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
     const res = await askJev(state, buildQuestions(criteria), jev, narrow.timeoutMs, env);
     if (res.status !== 'ok') {
       return pass('unavailable', res.reason, () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { reason: 'unavailable', elapsedMs: res.elapsedMs })),
+        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'unavailable', elapsedMs: res.elapsedMs })),
       );
     }
 
@@ -219,12 +261,12 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
 
     if (where === undefined || chosen === undefined) {
       return pass('no-chunk-chosen', 'no chunk stood out', () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { reason: 'no-chunk-chosen', ...spent })),
+        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'no-chunk-chosen', ...spent })),
       );
     }
     if (!confidenceAccepted(where.confidence, narrow)) {
       return pass('low-confidence', `${where.confidence.toFixed(2)} is under the ${narrow.minConfidence} floor`, () =>
-        append(projectRoot, record(sessionId, shown, lines.length, {
+        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns,
           reason: 'low-confidence', confidence: where.confidence, pickedLine: chosen.startLine, ...spent,
         })),
       );
@@ -232,7 +274,7 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
     const w = windowFor(chosen.startLine, lines.length, narrow);
     if (w === null) {
       return pass('window-covers-file', 'the window would cover the whole file', () =>
-        append(projectRoot, record(sessionId, shown, lines.length, {
+        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns,
           reason: 'window-covers-file', confidence: where.confidence, pickedLine: chosen.startLine, ...spent,
         })),
       );
@@ -247,7 +289,7 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
     };
 
     try {
-      append(projectRoot, record(sessionId, shown, lines.length, {
+      append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns,
         narrowed: true,
         offset: w.offset,
         limit: w.limit,

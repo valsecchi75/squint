@@ -8,8 +8,8 @@
 [![tokens](https://img.shields.io/badge/new%20tokens%20on%20reads%20it%20fires%20on-−47%25-3fb950)](#1-does-it-save-anything)
 [![cost](https://img.shields.io/badge/cost%20on%20those%20reads-−37%25-3fb950)](#1-does-it-save-anything)
 [![recall](https://img.shields.io/badge/target%20inside%20the%20window-19%20of%2019-3fb950)](#2-does-it-hide-code)
-[![runs](https://img.shields.io/badge/measured%20on-130%20paired%20runs-3fb950)](#the-evidence)
-[![tests](https://img.shields.io/badge/tests-61%20passing-3fb950)](#develop)
+[![runs](https://img.shields.io/badge/measured%20on-154%20paired%20runs-3fb950)](#the-evidence)
+[![tests](https://img.shields.io/badge/tests-74%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -384,6 +384,8 @@ an eligible read actually happens:
 | you name a large file and ask for one thing | **19/20** |
 | you ask for **two** things far apart in the same file | **2/8** |
 | you ask an open-ended question and name no file | **1/8** |
+| you are **editing** code, not reading it | **2/31** |
+| you search a knowledge base instead of naming the page | **0/21** |
 
 **That last row is the honest headline for a working day.** The −37% is real and it
 applies to a narrow situation. On open-ended work, over 29 real source files, an
@@ -432,7 +434,43 @@ file, so the quality column is not hollow. What the placebo was doing is **recov
 > A correct window does **not** preserve the answer — re-reading does. A correct window
 > preserves the **saving**.
 
-### 5. The failure this does not protect you from
+### 5. Real work: reading or editing?
+
+Everything above is a benchmark — one question, one named file, one session. Real work was
+tried too: four development tasks on a real codebase, and eight consultations over a
+346-page documentation corpus written by other people. The result splits along a line that
+was not in the design.
+
+| what you are doing | reads seen | narrowed | narrowing undone? | cost |
+|---|---:|---:|---|---|
+| **editing code** | 31 | **2** | **yes — 100% of the file re-read** | null |
+| **consulting a named page** | 3 | **2** | **no — 20% of the page read** | −27.4% ±22.2% |
+| **consulting, page not named** | 21 | **0** | — | null |
+
+**Editing undoes it.** An agent that modifies a file has to understand it, so it reads the
+rest. Both narrowings were reversed within a turn or two — in one case the agent read the
+*exact complement* of the window immediately.
+
+**Consulting holds.** Ask about a named page and the window sticks: no follow-up reads,
+a fifth of the page, both answers right.
+
+**But only if the page is named.** Searching a knowledge base, squint fired **0 times in
+21 reads** — 17 of them passed as `agent-set-window`, because an agent that finds a fact
+with `Grep` then reads a 20-line slice. *The better your retrieval, the less there is to
+narrow.*
+
+> **If you keep a wiki or a second brain**, two things decide whether squint can help you.
+> First, write **structured** notes: the gates (≥400 lines *and* <80,000 bytes) require an
+> average line under 200 bytes, so headings, lists and tables pass while flowing prose
+> **can never** pass — it hits the byte ceiling before the line floor. Second, squint only
+> acts once the agent has already chosen a file; it does nothing for *finding* the page.
+>
+> On structured docs the locate step is actually **better** than on code — it would narrow
+> **75%** of targets against 50%, with 100% recall on what it narrows. But its two failures
+> scored 0.45 and **0.59** against a floor of **0.60**: a margin of **0.01**, where code has
+> 0.19. Re-calibrate upward on your own corpus before trusting it there.
+
+### 6. The failure this does not protect you from
 
 The hook aims the window at **the last thing you typed**. Every measured session has one
 user turn, so the goal is always about the read in progress. Real sessions are not like

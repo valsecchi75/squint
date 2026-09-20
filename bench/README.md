@@ -20,6 +20,8 @@ It is here so the measurements can be re-run rather than believed.
 | `placebo-hook.mjs` | a sham hook: same gates, same window size, position chosen from a hash of the filename. |
 | `adversarial-report.mjs` | did the result survive the two attacks? |
 | `guessability.mjs` | the floor of the quality column: can the questions be answered with **no** reading tools at all? |
+| `consult.mjs` | squint su una base di conoscenza: consultazione invece di modifica, con e senza la pagina indicata. |
+| `calibrate-docs.mjs` | la taratura del passo di localizzazione su PROSA invece che su codice. Jev soltanto, centesimi. |
 | `stale-goal.mjs` | the failure the battery is blind to: aim the window at an *old* goal and see what it hides. Jev only, cents. |
 | `calibrate.mjs` | at what confidence does the window stop containing the answer? No Claude sessions — only Jev calls, so it costs cents. |
 | `charts.mjs` | regenerates the three SVGs in `docs/img` from the raw data. |

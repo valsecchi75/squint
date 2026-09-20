@@ -156,4 +156,16 @@ export interface NarrowRecord {
   linesAvoided?: number;
   inputTokens?: number;
   elapsedMs?: number;
+  /**
+   * How many assistant turns separate the user's message from this Read.
+   *
+   * 0 means the user had just spoken. A large number means the window was aimed at
+   * something said long ago, which is the one failure mode the confidence floor cannot
+   * detect - measured at 11/11 windows missing what the read needed, accepted at up to
+   * 0.98 confidence (docs/evidence.md section 6).
+   *
+   * RECORDED, NOT ACTED ON. No threshold exists yet because no distribution exists yet,
+   * and a threshold without one is a guess wearing a number.
+   */
+  goalAgeTurns?: number;
 }
