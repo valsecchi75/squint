@@ -18,7 +18,7 @@
  *   node dist/src/install.js uninstall
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -161,6 +161,41 @@ function load(path: string): { settings: ClaudeSettings; format: Format; missing
     // A file we cannot parse is left ALONE. Overwriting it would destroy settings we
     // never read.
     return 'corrupt';
+  }
+}
+
+/**
+ * Copies the `/squint` skill next to the settings file it was installed with, and bakes
+ * the CLI path into it.
+ *
+ * The placeholder is substituted rather than resolved at run time because a skill is
+ * prose handed to a model: it cannot compute a path, so it has to be told one. If the
+ * template is missing the install still succeeds - the hook is the product, the skill is
+ * the way to ask it questions.
+ */
+export function installSkill(settingsPath: string, installRoot: string): 'installed' | 'skipped' {
+  const template = join(installRoot, 'skills', 'squint', 'SKILL.md');
+  if (!existsSync(template)) return 'skipped';
+  try {
+    const body = readFileSync(template, 'utf8').split('SQUINT_CLI').join(`${norm(installRoot)}/dist/src/bin.js`);
+    const dir = join(dirname(settingsPath), 'skills', 'squint');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'SKILL.md'), body, 'utf8');
+    return 'installed';
+  } catch {
+    return 'skipped';
+  }
+}
+
+/** The mirror: removes only the file we wrote, never the directory around it. */
+export function uninstallSkill(settingsPath: string): 'removed' | 'absent' {
+  const file = join(dirname(settingsPath), 'skills', 'squint', 'SKILL.md');
+  try {
+    if (!existsSync(file)) return 'absent';
+    rmSync(file, { force: true });
+    return 'removed';
+  } catch {
+    return 'absent';
   }
 }
 

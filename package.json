@@ -9,6 +9,7 @@
   },
   "files": [
     "dist/src",
+    "skills",
     "README.md",
     "LICENSE",
     "docs"
@@ -17,8 +18,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test \"dist/test/**/*.test.js\"",
-    "install-hook": "npm run build && node dist/src/install.js install",
-    "uninstall-hook": "node dist/src/install.js uninstall"
+    "install-hook": "npm run build && node dist/src/bin.js install",
+    "uninstall-hook": "node dist/src/bin.js uninstall",
+    "doctor": "node dist/src/bin.js doctor"
   },
   "keywords": [
     "claude-code",
@@ -34,5 +36,8 @@
   "devDependencies": {
     "@types/node": "^24.13.6",
     "typescript": "^5.9.3"
+  },
+  "bin": {
+    "squint": "dist/src/bin.js"
   }
 }

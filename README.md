@@ -7,7 +7,7 @@
 [![alpha](https://img.shields.io/badge/status-alpha-orange)](#what-this-does-not-tell-you)
 [![measured](https://img.shields.io/badge/cost%20on%20reads%20it%20fires%20on-−36%25-3fb950)](#1-does-it-save-anything)
 [![recall](https://img.shields.io/badge/answers%20lost-0%20of%2018-3fb950)](#2-does-it-hide-code)
-[![tests](https://img.shields.io/badge/tests-40%20passing-3fb950)](#develop)
+[![tests](https://img.shields.io/badge/tests-61%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -69,20 +69,21 @@ npm install
 npm run install-hook          # turns it on for EVERY project you open
 ```
 
-Then put the key in your environment, permanently — the hook is a separate process and
-inherits it from your shell:
+Then the key. `squint key` asks for it once and stores it in your **user** environment, so
+every terminal and every Claude Code session inherits it:
 
 ```bash
-# bash / zsh, in ~/.bashrc or ~/.zshrc
-export TYPESAFE_API_KEY=...
+node dist/src/bin.js key
 ```
+
+squint never stores the key itself, never logs it, and never prints it back — not even a
+prefix, because a prefix in a log is still a leak. If you would rather set it by hand:
+
 ```cmd
-:: cmd, once, persisted for your user
-setx TYPESAFE_API_KEY "..."
+setx TYPESAFE_API_KEY "your-key"
 ```
-```powershell
-# PowerShell, once, persisted for your user
-[Environment]::SetEnvironmentVariable('TYPESAFE_API_KEY','...','User')
+```bash
+export TYPESAFE_API_KEY=your-key       # in ~/.bashrc or ~/.zshrc
 ```
 
 Open a **new** terminal so the variable is picked up, then `cd` to any project and use
@@ -142,11 +143,59 @@ Preserving the original bytes exactly needs a textual graft. That is a beta item
 ### Check it is working
 
 ```bash
-SQUINT_DEBUG=1 claude -p "Read src/some-big-file.ts and name the function that ..."
+node dist/src/bin.js doctor
 ```
 
-With debug on, the hook prints one line per read — **including the reads it decided to
-leave alone, and why**.
+```
+squint · doctor
+
+  [ok] Node >= 20         found 24.14.0
+  [ok] built              dist/src/hook.js is present
+  [ok] TYPESAFE_API_KEY   present in the environment
+  [ok] hook registered    /home/you/.claude/settings.json
+
+  Ready. Open a project and use Claude Code normally.
+```
+
+For the reads themselves, `SQUINT_DEBUG=1` makes the hook print one line per read —
+**including the ones it decided to leave alone, and why**.
+
+---
+
+## `/squint`, inside Claude Code
+
+Installing also adds a `/squint` command, because a hook with no surface is a hook you
+cannot debug. When a read is not narrowed you want to know whether the key is missing, the
+file was too small, or the model was unsure — and "nothing happened" looks identical in
+all three.
+
+| | |
+|---|---|
+| `/squint` | what it has done here, then whether anything is misconfigured |
+| `/squint report` | the ledger for this project |
+| `/squint doctor` | the four checks above |
+| `/squint off` · `/squint on` | stop and resume narrowing **here**, without uninstalling |
+
+```
+squint · report · /home/you/projects/api
+
+  sessions            1
+  reads looked at     1
+  of those, narrowed  0  (0%)
+  lines not read      0   ACTUAL, a line count - never converted to tokens
+  Jev input tokens    21,944   ACTUAL, what the decisions cost
+
+  left alone, and why  (these are the denominator, not failures)
+       1  low-confidence
+```
+
+That is a real report from a real session, and it is worth reading twice. **One read, no
+narrowing, and 21,944 tokens spent on the decision anyway.** The hook asked, the model was
+not sure enough, and it left the file alone — the safe outcome, and not a free one. The
+report says so rather than showing you a saving you did not get.
+
+`off` is not an uninstall: the hook stays registered and keeps recording that it was asked
+and declined. Those are different things to want.
 
 ---
 
@@ -383,7 +432,7 @@ these defaults.
 
 ```bash
 npm run typecheck     # tsc --noEmit
-npm test              # build, then node --test  (40 tests)
+npm test              # build, then node --test  (61 tests)
 npm run build
 ```
 
@@ -398,6 +447,8 @@ src/jev.ts        one call, raced against its own budget
 src/ledger.ts     JSONL, path shortening, the scrub
 src/config.ts     .squint.json, fail-open
 src/install.ts    merge into .claude/settings.json, and back out
+src/cli.ts        doctor, report, on/off, key - the dispatcher is a pure function
+src/bin.ts        the executable, so cli.ts never has to spawn a process to test
 ```
 
 ---
