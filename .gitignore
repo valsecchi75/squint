@@ -2,8 +2,8 @@ node_modules/
 dist/
 
 # Il ledger e la config locale sono dati della macchina, non del progetto
-.jev-narrow/
-.jev-narrow.json
+.squint/
+.squint.json
 
 # Credenziali: mai nel repository
 .env

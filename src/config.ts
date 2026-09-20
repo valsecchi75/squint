@@ -1,5 +1,5 @@
 /**
- * Config loading (I/O). Reads `<projectRoot>/.jev-narrow.json` if it exists.
+ * Config loading (I/O). Reads `<projectRoot>/.squint.json` if it exists.
  *
  * Fail-open: a missing, unreadable or malformed file never throws - the affected
  * fields fall back to the defaults in types.ts, which is the table published in the
@@ -11,7 +11,7 @@ import { join } from 'node:path';
 
 import { DEFAULT_CONFIG, DEFAULT_JEV, type JevConfig, type NarrowConfig } from './types.js';
 
-export const CONFIG_FILENAME = '.jev-narrow.json';
+export const CONFIG_FILENAME = '.squint.json';
 
 const obj = (v: unknown): Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};

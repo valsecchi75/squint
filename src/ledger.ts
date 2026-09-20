@@ -19,7 +19,7 @@ import { basename, isAbsolute, join, relative, sep } from 'node:path';
 
 import type { NarrowRecord } from './types.js';
 
-export const LEDGER_DIR = '.jev-narrow';
+export const LEDGER_DIR = '.squint';
 
 /** Paths that must never leave the machine, whatever else is configured. */
 const EXCLUDED = [/(^|[\\/])\.env($|[.\\/])/i, /(^|[\\/])secrets?([\\/]|$)/i, /(^|[\\/])\.git([\\/]|$)/i];

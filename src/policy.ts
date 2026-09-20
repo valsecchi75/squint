@@ -1,5 +1,5 @@
 /**
- * The policy: everything jev-narrow decides WITHOUT doing any I/O.
+ * The policy: everything squint decides WITHOUT doing any I/O.
  *
  * NOTHING IN THIS MODULE TOUCHES THE DISK, THE NETWORK OR THE CLOCK. It imports
  * types only, and test/policy.test.ts asserts that against this file's own source -
@@ -211,7 +211,7 @@ export function narrowingNote(
   confidence: number,
 ): string {
   return (
-    `jev-narrow narrowed this Read: ${basename} is ${totalLines} lines, showing ${w.offset}-${w.offset + w.limit - 1} ` +
+    `squint narrowed this Read: ${basename} is ${totalLines} lines, showing ${w.offset}-${w.offset + w.limit - 1} ` +
     `(match at line ${pickedLine}, confidence ${confidence.toFixed(2)}). ` +
     'Read it again with an explicit offset or limit to see any other part - nothing was removed from the file.'
   );

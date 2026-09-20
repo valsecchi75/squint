@@ -1,6 +1,6 @@
 <div align="center">
 
-# jev-narrow
+# squint
 
 **Claude reads the part of the file that answers your question, not the whole file.**
 
@@ -31,7 +31,7 @@ you ask ──▶ Claude calls Read(report.ts) ──▶ [hook] ──▶ Read(r
 
 Claude is then told exactly what happened, and how to undo it:
 
-> jev-narrow narrowed this Read: report.ts is 1307 lines, showing 781-1041 (match at line
+> squint narrowed this Read: report.ts is 1307 lines, showing 781-1041 (match at line
 > 911, confidence 0.93). Read it again with an explicit offset or limit to see any other
 > part — nothing was removed from the file.
 
@@ -60,8 +60,8 @@ does not depend on the model cooperating, or on it noticing.
 Needs **Node ≥ 20** and a [TypeSafe](https://docs.typesafe.ai) API key.
 
 ```bash
-git clone https://github.com/valsecchi75/jev-narrow
-cd jev-narrow
+git clone https://github.com/valsecchi75/squint
+cd squint
 npm install
 npm run install-hook
 ```
@@ -100,7 +100,7 @@ hand-formatted `settings.json` will show unrelated lines as changed in a diff. W
 happens the installer says so:
 
 ```
-jev-narrow · install · installed-reformatted · /path/.claude/settings.json
+squint · install · installed-reformatted · /path/.claude/settings.json
   note: the entry was added, but your settings.json was hand-formatted and has
   been re-printed. The JSON is equivalent and nothing was lost - but unrelated
   lines will show as changed in a diff. Check it before committing.
@@ -113,7 +113,7 @@ Preserving the original bytes exactly needs a textual graft. That is a beta item
 ### Check it is working
 
 ```bash
-JEV_NARROW_DEBUG=1 claude -p "Read src/some-big-file.ts and name the function that ..."
+SQUINT_DEBUG=1 claude -p "Read src/some-big-file.ts and name the function that ..."
 ```
 
 With debug on, the hook prints one line per read — **including the reads it decided to
@@ -278,7 +278,7 @@ key prefixes, long opaque strings, and `key=value` pairs whose key looks like a 
 **It will not catch a secret with no recognisable shape.** If your prompts routinely carry
 such values, this hook is not for you.
 
-The ledger stays local in `.jev-narrow/` and is gitignored.
+The ledger stays local in `.squint/` and is gitignored.
 
 ---
 
@@ -304,7 +304,7 @@ multiplied by a guess is a guess.
 
 ## Configuration
 
-Optional `.jev-narrow.json` in the project root. Every default is a measured value, and
+Optional `.squint.json` in the project root. Every default is a measured value, and
 [`docs/evidence.md`](docs/evidence.md) says what measured it.
 
 ```json
@@ -367,7 +367,7 @@ src/policy.ts     the refusal ladder, chunking, window — no I/O
 src/hook.ts       stdin → decision → updatedInput, fail-open throughout
 src/jev.ts        one call, raced against its own budget
 src/ledger.ts     JSONL, path shortening, the scrub
-src/config.ts     .jev-narrow.json, fail-open
+src/config.ts     .squint.json, fail-open
 src/install.ts    merge into .claude/settings.json, and back out
 ```
 

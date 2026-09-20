@@ -1,5 +1,5 @@
 /**
- * The whole type surface of jev-narrow. Deliberately small: this package does one
+ * The whole type surface of squint. Deliberately small: this package does one
  * thing, so it needs one config block and one record shape.
  *
  * Every number in `NarrowConfig` is MEASURED, and the measurement is beside it in

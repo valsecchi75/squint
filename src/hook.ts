@@ -124,11 +124,11 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
   const env = deps.env ?? process.env;
   const stdout = deps.stdout ?? ((t: string): void => void process.stdout.write(t));
   const stderr = deps.stderr ?? ((t: string): void => void process.stderr.write(t));
-  const debug = env['JEV_NARROW_DEBUG'] === '1';
+  const debug = env['SQUINT_DEBUG'] === '1';
   const append = deps.append ?? appendRecord;
 
   const pass = (reason: PassReason, detail: string, log?: () => void): HookOutput => {
-    if (debug) stderr(`jev-narrow: passing through (${reason}: ${detail})\n`);
+    if (debug) stderr(`squint: passing through (${reason}: ${detail})\n`);
     try {
       log?.();
     } catch {
@@ -260,11 +260,11 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
       // never let the ledger cost a narrowing that already succeeded
     }
 
-    if (debug) stderr(`jev-narrow: ${shown} ${w.offset}-${w.offset + w.limit - 1} of ${lines.length}\n`);
+    if (debug) stderr(`squint: ${shown} ${w.offset}-${w.offset + w.limit - 1} of ${lines.length}\n`);
     stdout(JSON.stringify(out));
     return out;
   } catch (err) {
-    if (debug) stderr(`jev-narrow: hook failed (${String((err as Error)?.name ?? 'error')})\n`);
+    if (debug) stderr(`squint: hook failed (${String((err as Error)?.name ?? 'error')})\n`);
     return {};
   }
 }

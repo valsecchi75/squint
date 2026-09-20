@@ -39,7 +39,7 @@ export interface ClaudeSettings {
 export const EVENT = 'PreToolUse';
 export const MATCHER = 'Read';
 /** Identifies our entry inside the array, so we only ever remove our own. */
-export const MARKER = 'jev-narrow/dist/src/hook.js';
+export const MARKER = 'squint/dist/src/hook.js';
 
 /**
  * Seconds, as Claude Code counts hook timeouts. Larger than the 6 s call budget so a
@@ -187,7 +187,7 @@ export function uninstallFrom(path: string): Outcome {
 // --- CLI ----------------------------------------------------------------------
 
 const USAGE = [
-  'jev-narrow installer',
+  'squint installer',
   '',
   '  install [--settings <path>]     add the PreToolUse/Read hook',
   '  uninstall [--settings <path>]   take it back out',
@@ -213,11 +213,11 @@ export function cli(argv: readonly string[], cwd: string, installRoot: string): 
 
   if (cmd === 'install') {
     const r = installInto(path, installRoot);
-    return { text: `jev-narrow · install · ${r} · ${path}${note(r)}`, code: r === 'corrupt' ? 1 : 0 };
+    return { text: `squint · install · ${r} · ${path}${note(r)}`, code: r === 'corrupt' ? 1 : 0 };
   }
   if (cmd === 'uninstall') {
     const r = uninstallFrom(path);
-    return { text: `jev-narrow · uninstall · ${r} · ${path}${note(r)}`, code: r === 'corrupt' ? 1 : 0 };
+    return { text: `squint · uninstall · ${r} · ${path}${note(r)}`, code: r === 'corrupt' ? 1 : 0 };
   }
   return { text: USAGE, code: cmd === undefined ? 0 : 1 };
 }
