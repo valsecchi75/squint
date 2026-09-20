@@ -19,6 +19,8 @@ It is here so the measurements can be re-run rather than believed.
 | `adversarial.mjs` | can the result be broken? Reversed arm order, and a placebo hook. |
 | `placebo-hook.mjs` | a sham hook: same gates, same window size, position chosen from a hash of the filename. |
 | `adversarial-report.mjs` | did the result survive the two attacks? |
+| `guessability.mjs` | the floor of the quality column: can the questions be answered with **no** reading tools at all? |
+| `stale-goal.mjs` | the failure the battery is blind to: aim the window at an *old* goal and see what it hides. Jev only, cents. |
 | `calibrate.mjs` | at what confidence does the window stop containing the answer? No Claude sessions — only Jev calls, so it costs cents. |
 | `charts.mjs` | regenerates the three SVGs in `docs/img` from the raw data. |
 
@@ -103,3 +105,13 @@ records refusals as well as narrowings.
 A run is roughly $0.02–$0.11 on `haiku`, depending on the stratum: targeted reads are
 cheap, open-ended exploration is not. The calibration is cents, because it never starts a
 session. Budget the A/B, not the calibration.
+
+```bash
+node bench/guessability.mjs <workspace> <out.jsonl> [nCases]
+node bench/stale-goal.mjs <srcDir> <out.json>
+```
+
+`guessability.mjs` is the control that should be run before believing any "no answers
+lost" figure, including this project's own. If the model can answer with every reading
+tool forbidden, the quality column measures the model rather than the mechanism. Here it
+scored 0 of 10, which is what makes the rest of the column mean something.

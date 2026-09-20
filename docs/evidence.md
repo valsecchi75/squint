@@ -5,8 +5,18 @@ Two rounds of measurement, both on 2026-09-20, on Claude Code build `2.1.110`, w
 
 - **Round one** — 12 pairs, three strata. Kept below, unchanged, so the second round can
   be checked against it rather than replacing it quietly.
-- **Round two** — **100 runs**, five strata, plus a **30-run adversarial pass** built to
-  break the result. `[ACTUAL]` $3.4354 on the battery, $1.0052 on the adversarial pass.
+- **Round two** — **100 runs** across five strata, a **30-run adversarial pass** built to
+  break the result, a **10-run floor control** with all reading forbidden, and an offline
+  probe of the one failure the battery cannot see. `[ACTUAL]` $3.4354 + $1.0052 + $0.2488,
+  plus cents of Jev calls.
+
+**The short version, if you read nothing else.** The saving is real, survives having its
+arm order reversed, and is attributable to the window being *aimed* rather than merely
+*short* — a placebo that compresses identically saves nothing. The quality claim is
+weaker than it looks: what preserves the answer when the window is wrong is the agent
+**re-reading**, not the window being right. And there is one failure mode the whole
+battery is blind to — a **stale goal** — which produces a confident, precise, wrong
+window in 11 cases out of 11, at confidences up to 0.98. See §5 and §6.
 
 Two labels are used throughout and never mixed. **ACTUAL** means read from a response or
 a log. **ESTIMATED** means computed with a formula that is printed next to it. No
@@ -426,6 +436,29 @@ is allowed to read again.
 Attack 1 suspects is advantaged. That bias works **against** the conclusion drawn here:
 the placebo had the comfortable slot and still failed to save. And ten cases is ten cases.
 
+### Attack 3 — could the questions be answered without reading at all? **No.**
+
+The placebo answering 10 of 10 while missing 8 of 10 windows left two explanations
+standing, with opposite consequences: either the agent **recovers**, or the questions
+were answerable **without the file**, in which case the whole quality column measures the
+model rather than the mechanism.
+
+The same ten questions were asked with every reading tool forbidden — no `Read`, no
+`Grep`, no `Glob`, no `Bash`. `[ACTUAL]` **0 of 10 correct**, $0.2488.
+
+| condition | answers correct | what it means |
+|---|---:|---|
+| nothing may be read | **0/10** | the questions genuinely require the file |
+| the window is wrong (placebo) | 10/10 | the agent re-reads and recovers |
+| the window is right (squint) | 18/19 | answers preserved, and the saving kept |
+
+**So the recovery explanation is the right one, and the quality column is not hollow.**
+The precise statement the data supports is narrower than the headline and worth having in
+one sentence:
+
+> A correct window does **not** preserve the answer — recovery does that. A correct
+> window preserves the **saving**.
+
 ### What survived, and what did not
 
 | claim | status after the attacks |
@@ -440,7 +473,58 @@ the placebo had the comfortable slot and still failed to save. And ten cases is 
 
 ---
 
-## 6. What was not measured
+## 6. The failure the battery cannot see — measured separately, and it is real
+
+Every session in the battery has exactly **one user turn**, so the goal the hook aims at
+is always fresh and always about the read in progress. A real session does not look like
+that. `lastUserMessage()` takes the last thing *you* typed; the agent then works for many
+turns and reads a file for reasons of its own, and the window is aimed at your old
+question anyway.
+
+This was listed as the largest unmeasured risk. It is no longer unmeasured.
+
+**The test.** Two targets in the same file. Hand the locate step the goal belonging to the
+first, and check the window against the line the read actually needs — the second. Eleven
+such pairs across five files, offline, `[ACTUAL]` cents.
+([`bench/stale-goal.mjs`](../bench/stale-goal.mjs), raw data in
+[`data/stale-goal.json`](data/stale-goal.json).)
+
+| | result |
+|---|---:|
+| windows that contained what the read actually needed | **0 / 11** |
+| expected by chance, given a window of a fifth of the file | ~22% |
+| **pairs where the hook would have narrowed anyway** | **11 / 11** |
+| confidence in those cases | 0.60 – **0.98**, median 0.84 |
+| **pairs where it would have hidden what was needed** | **11 / 11** |
+
+**Zero, which is worse than chance.** A window aimed at a stale goal is not randomly
+placed — it is deterministically pulled *away* from whatever else the file contains.
+
+**And the confidence floor sees none of it.** Confidence answers "how sure am I which
+chunk implements *this goal*", not "does this goal have anything to do with the read in
+progress". A stale but well-formed goal produces a confident, precise, wrong window — one
+of them at **0.98**. The only safety gate squint has is structurally blind to this class
+of error.
+
+**What this does and does not establish.** It is a worst case by construction: the stale
+goal is a fully-formed question about a *different function in the same file*, which is
+about the most misleading input possible. It does **not** measure how often that
+situation arises in real work — nothing here does. What it establishes is that **when it
+arises, nothing stops it**, and the ledger will record a confident narrowing that looks
+exactly like a good one.
+
+**The cheapest mitigation is not a better threshold.** It is knowing how old the goal is:
+the hook already reads the transcript, so it can count the assistant turns between the
+user's message and the read, record that distance in the ledger, and — once the
+distribution is known — decline when it is large. That is a measurement first and a
+policy second, and it has not been built.
+
+One of the twelve pairs failed on a `timeout after 6000 ms`, which is the current budget.
+It is reported rather than retried, because a timeout is the fail-open path working.
+
+---
+
+## 7. What was not measured
 
 - **Only one model.** Everything ran on `claude-haiku-4-5`. The mechanism is
   model-independent in principle — it changes what the tool returns, not what the model
@@ -451,11 +535,9 @@ the placebo had the comfortable slot and still failed to save. And ten cases is 
   free agent's subagent leaves the working directory and stops measuring the corpus.
   What squint does across a delegated session is recorded in the ledger and not
   characterised.
-- **A stale goal.** Every session in this battery has exactly **one user turn**, so the
-  goal is always fresh and always relevant to the read. In a real session the last user
-  message can be many turns back and about something else, and the hook would aim the
-  window at it anyway. This is the largest risk in the design and the measurement is
-  structurally blind to it. See `O9` in [`optimizations.md`](optimizations.md).
+- **A stale goal — now measured, see §6, and it is the worst thing on this page.**
+  What is still *not* measured is how often it happens in real work. The battery cannot
+  say, because every session in it has one user turn.
 - **Small n where it is smallest.** Nineteen fired pairs carry the headline. Four pairs
   carry the oversize control. Eight carry the open-ended rate. The paired design separates
   signal from noise at these sizes; it does not characterise a tail.

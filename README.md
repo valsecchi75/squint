@@ -423,10 +423,40 @@ and saves *nothing*: the agent sees the window lacks what it needs and reads aga
 reads instead of 1.1 — and the recovery eats the entire gain.
 
 **And "no answers lost" is weaker than it looks.** The placebo missed the target in 8 of
-10 windows and still answered 10 of 10, better than either real arm. The quality column
-does not prove the window was right; it proves **the escape hatch works**. That is a
-genuine property — squint tells the agent how to undo it, and the agent does — but it is
-not the property the number appears to claim.
+10 windows and still answered 10 of 10, better than either real arm.
+
+Two explanations survived that, so both were tested. Asking the same ten questions with
+**every reading tool forbidden** scored **0 of 10** — the questions genuinely need the
+file, so the quality column is not hollow. What the placebo was doing is **recovering**.
+
+> A correct window does **not** preserve the answer — re-reading does. A correct window
+> preserves the **saving**.
+
+### 5. The failure this does not protect you from
+
+The hook aims the window at **the last thing you typed**. Every measured session has one
+user turn, so the goal is always about the read in progress. Real sessions are not like
+that.
+
+Tested offline: hand the locate step a goal belonging to a *different* function in the
+same file, then check the window against what the read actually needs.
+
+| | result |
+|---|---:|
+| windows containing what the read needed | **0 / 11** |
+| expected by chance | ~22% |
+| **cases where the hook would have narrowed anyway** | **11 / 11** |
+| confidence in those cases | 0.60 – **0.98** |
+
+Zero is *worse* than chance: a stale goal pulls the window deterministically away from
+everything else in the file. **And the confidence floor cannot see it** — confidence
+measures certainty about which chunk matches *this goal*, not whether the goal has
+anything to do with the read.
+
+How often that happens in real work is **not measured**. What is measured is that when it
+happens, nothing stops it, and the ledger will record a confident narrowing that looks
+exactly like a good one. Full write-up and the cheapest mitigation:
+[`docs/evidence.md`](docs/evidence.md) §6.
 
 ---
 
@@ -523,11 +553,9 @@ these defaults.
 - **In free-form work it rarely fires: once in eight sessions.** Everything headline above
   is the case where Claude reads a *named* large file. That case is not most of a working
   day, and now the gap is measured rather than guessed.
-- **The goal can be stale, and the battery cannot see it.** The hook aims the window at
-  the last thing *you* typed. Every measured session has exactly one user turn, so the
-  goal is always fresh. In a real session it can be twenty turns back and about something
-  else, and the window would be aimed at it anyway. **This is the largest risk in the
-  design and it is unmeasured.**
+- **The goal can be stale — now measured, and it is the real defect.** 11 of 11 windows
+  built from a stale goal hide what the read needs, at confidence up to 0.98. What is
+  still unmeasured is how often that happens in real work. See §5 above.
 - **Delegation is excluded, by choice.** A free agent calls a subagent that is not
   confined to the working directory — one run answered by citing a file from an unrelated
   project elsewhere on disk. The open-ended numbers therefore describe an agent working

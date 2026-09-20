@@ -1,0 +1,211 @@
+[
+  {
+    "file": "report.ts",
+    "staleGoal": "A1",
+    "staleTrueLine": 388,
+    "target": "A2",
+    "targetTrueLine": 912,
+    "conf": 0.89,
+    "accepted": true,
+    "picked": 381,
+    "window": {
+      "offset": 251,
+      "limit": 261
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 1307,
+    "inTok": 21927,
+    "elapsedMs": 3253
+  },
+  {
+    "file": "report.ts",
+    "staleGoal": "A2",
+    "staleTrueLine": 912,
+    "target": "A1",
+    "targetTrueLine": 388,
+    "conf": 0.6,
+    "accepted": true,
+    "picked": 911,
+    "window": {
+      "offset": 781,
+      "limit": 261
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 1307,
+    "inTok": 21934,
+    "elapsedMs": 2508
+  },
+  {
+    "file": "report.ts",
+    "staleGoal": "A2",
+    "staleTrueLine": 912,
+    "target": "A7",
+    "targetTrueLine": 1168,
+    "conf": 0.67,
+    "accepted": true,
+    "picked": 911,
+    "window": {
+      "offset": 781,
+      "limit": 261
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 1307,
+    "inTok": 21934,
+    "elapsedMs": 4633
+  },
+  {
+    "file": "report.ts",
+    "staleGoal": "A7",
+    "staleTrueLine": 1168,
+    "target": "A1",
+    "targetTrueLine": 388,
+    "conf": 0.74,
+    "accepted": true,
+    "picked": 1161,
+    "window": {
+      "offset": 1031,
+      "limit": 261
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 1307,
+    "inTok": 21931,
+    "elapsedMs": 3842
+  },
+  {
+    "file": "report.ts",
+    "staleGoal": "A7",
+    "staleTrueLine": 1168,
+    "target": "A2",
+    "targetTrueLine": 912,
+    "conf": 0.75,
+    "accepted": true,
+    "picked": 1161,
+    "window": {
+      "offset": 1031,
+      "limit": 261
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 1307,
+    "inTok": 21931,
+    "elapsedMs": 2816
+  },
+  {
+    "file": "cli.ts",
+    "staleGoal": "A3",
+    "staleTrueLine": 370,
+    "target": "A8",
+    "targetTrueLine": 136,
+    "conf": 0.95,
+    "accepted": true,
+    "picked": 361,
+    "window": {
+      "offset": 257,
+      "limit": 208
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 1041,
+    "inTok": 17628,
+    "elapsedMs": 2372
+  },
+  {
+    "file": "cli.ts",
+    "staleGoal": "A8",
+    "staleTrueLine": 136,
+    "target": "A3",
+    "targetTrueLine": 370,
+    "conf": 0.98,
+    "accepted": true,
+    "picked": 131,
+    "window": {
+      "offset": 27,
+      "limit": 208
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 1041,
+    "inTok": 17619,
+    "elapsedMs": 2869
+  },
+  {
+    "file": "escalation.ts",
+    "staleGoal": "A4",
+    "staleTrueLine": 188,
+    "target": "A10",
+    "targetTrueLine": 428,
+    "conf": 0.84,
+    "accepted": true,
+    "picked": 181,
+    "window": {
+      "offset": 106,
+      "limit": 150
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 508,
+    "inTok": 8567,
+    "elapsedMs": 1958
+  },
+  {
+    "file": "escalation.ts",
+    "staleGoal": "A10",
+    "staleTrueLine": 428,
+    "target": "A4",
+    "targetTrueLine": 188,
+    "conf": 0.95,
+    "accepted": true,
+    "picked": 421,
+    "window": {
+      "offset": 346,
+      "limit": 150
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 508,
+    "inTok": 8567,
+    "elapsedMs": 1652
+  },
+  {
+    "file": "install-settings.ts",
+    "staleGoal": "A6",
+    "staleTrueLine": 229,
+    "target": "A9",
+    "targetTrueLine": 493,
+    "conf": 0.97,
+    "accepted": true,
+    "picked": 221,
+    "window": {
+      "offset": 146,
+      "limit": 150
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 738,
+    "inTok": 12225,
+    "elapsedMs": 1767
+  },
+  {
+    "file": "install-settings.ts",
+    "staleGoal": "A9",
+    "staleTrueLine": 493,
+    "target": "A6",
+    "targetTrueLine": 229,
+    "conf": 0.64,
+    "accepted": true,
+    "picked": 491,
+    "window": {
+      "offset": 416,
+      "limit": 150
+    },
+    "hitsStale": true,
+    "hitsTarget": false,
+    "totalLines": 738,
+    "inTok": 12232,
+    "elapsedMs": 1397
+  }
+]

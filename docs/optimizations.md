@@ -1,9 +1,12 @@
 # Optimizations — what is on the table, what it would buy, and what it could break
 
-Nothing here is implemented. This is the analysis that has to come before the choice,
-and for several of these the analysis is the answer: three of the eight ideas that
-opened this list are **not supported by the data**, and saying so is cheaper than
-building them.
+Nothing here is implemented. This is the analysis that has to come before the choice, and
+for most of these the analysis *is* the answer: **five of the eleven ideas are refuted by
+data**, and three of those five were in the original list and looked obviously right.
+Saying so is cheaper than building them.
+
+The one thing on this page that turned out to be a real defect was not on the list at
+all — it was found by reading the code, and then measured: **O9, the stale goal**.
 
 Every figure is **ACTUAL** (read from a response or a log) or **ESTIMATED** (computed
 with the formula printed beside it). No percentage appears without its baseline.
@@ -28,7 +31,7 @@ page. Three of the five were in the original list and looked reasonable.
 
 | | idea | expected gain, measured | verdict |
 |---|---|---|---|
-| **O9** | the goal can be stale *(new)* | correctness, not cost | **the biggest unmeasured risk — measure it** |
+| **O9** | the goal can be stale *(new)* | **measured: 11/11 windows hide what the read needs, at confidence up to 0.98** | **the real defect — instrument it first** |
 | **O6** | re-measure the 400-line floor | the floor sits 2.5× above the cost break-even | **worth doing, ~$0.02** |
 | **O8** | textual graft in the installer | byte-for-byte `settings.json` | **worth doing, the code exists** |
 | **O11** | a per-session call ceiling *(new)* | bounds an unbounded worst case | **worth doing, ~10 lines** |
@@ -201,14 +204,33 @@ The window would then be centred on the wrong thing, at whatever confidence Jev 
 to return, and the agent would receive a fifth of `report.ts` with a note saying nothing
 was removed from the file.
 
-**Why no number here exists.** Every session in this benchmark has exactly one user turn,
-so the goal is always fresh and always relevant. The measurement is structurally blind to
-this failure.
+**It has now been measured, and it is worse than the wording above suggested.**
+`[ACTUAL]`, 11 pairs across five files ([`bench/stale-goal.mjs`](../bench/stale-goal.mjs)):
+hand the locate step a goal belonging to a *different* function in the same file, then
+check the window against the line the read actually needs.
 
-**How to measure it.** In the ledger, record the distance between the goal's turn and the
-Read — number of assistant turns in between — and, in a session with the ledger running,
-label a sample of narrowings by hand for whether the goal actually described the read.
-That is the experiment; it has not been run.
+| | result |
+|---|---:|
+| windows containing what the read needed | **0 / 11** |
+| expected by chance (window = a fifth of the file) | ~22% |
+| **cases where the hook would have narrowed anyway** | **11 / 11** |
+| confidence in those cases | 0.60 – **0.98**, median 0.84 |
+
+**Zero is worse than chance**, because a stale goal does not place the window randomly —
+it pulls it deterministically *away* from everything else in the file. And the confidence
+floor, the only safety gate squint has, is **structurally blind**: it measures certainty
+about which chunk matches *this goal*, not whether the goal has anything to do with the
+read in progress.
+
+**What is still unmeasured** is how often the situation arises in real work. The battery
+cannot say: every session in it has one user turn.
+
+**The mitigation, and why it is a measurement before it is a policy.** The hook already
+parses the transcript, so it can cheaply record **how old the goal is** — the number of
+assistant turns between the user's message and the read — in the ledger. Once that
+distribution exists on real sessions, a refusal above some distance becomes a decision
+someone can defend. Guessing the cut-off now would replace a blind gate with an arbitrary
+one.
 
 **What a fix would risk.** Any richer notion of "what is being worked on now" means
 sending more of the transcript to a third party, and the transcript is the user's own
