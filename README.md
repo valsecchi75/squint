@@ -4,12 +4,12 @@
 
 **Claude reads the part of the file that answers your question, not the whole file.**
 
-[![alpha](https://img.shields.io/badge/status-alpha-orange)](#what-this-does-not-tell-you)
+[![beta](https://img.shields.io/badge/status-beta-blue)](#what-this-does-not-tell-you)
 [![tokens](https://img.shields.io/badge/new%20tokens%20on%20reads%20it%20fires%20on-−47%25-3fb950)](#1-does-it-save-anything)
 [![cost](https://img.shields.io/badge/cost%20on%20those%20reads-−37%25-3fb950)](#1-does-it-save-anything)
 [![recall](https://img.shields.io/badge/target%20inside%20the%20window-19%20of%2019-3fb950)](#2-does-it-hide-code)
 [![runs](https://img.shields.io/badge/measured%20on-184%20paired%20runs-3fb950)](#the-evidence)
-[![tests](https://img.shields.io/badge/tests-74%20passing-3fb950)](#develop)
+[![tests](https://img.shields.io/badge/tests-85%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -526,6 +526,43 @@ exactly like a good one. Full write-up and the cheapest mitigation:
 
 ---
 
+### 7. The code audit before beta
+
+Two defects, both found by reading the code and both confirmed by measurement before
+being believed. Both were **orderings**, which is the kind of bug review finds and tests
+do not.
+
+| what was wrong | how it showed | after the fix |
+|---|---|---:|
+| the file was read **before** the hook asked whether it needed it | a 40 MB path under `Secrets/` was pulled into memory and refused afterwards: 43 ms → **89 ms** | 43 → **45 ms**, and an excluded path is now never opened at all |
+| `squint off` wrote `.squint.json` wherever you were standing | run from a subdirectory it wrote `src/deep/.squint.json`, which the hook never reads — it printed `off` and narrowing stayed **on** | the CLI and the hook resolve the project root the same way |
+
+The project rule is that `Secrets/` is *never read and never sent*. Only the second half
+of that was true; now both are, and the test that guards it asks the hook to narrow a
+path under `Secrets/` **that does not exist** — if it ever reads before deciding again,
+the answer becomes "unreadable" instead of "excluded" and the test fails.
+
+A third defect surfaced while writing the test for the second: walking up the tree for a
+project marker finds `~/.claude`, which exists on every machine that has ever run Claude
+Code, so any unmarked directory under home resolved to *home*. `squint off` would have
+written `~/.squint.json` and disabled narrowing everywhere. Guarded and tested.
+
+**One latent defect is recorded and left alone.** `lastUserMessage` takes any message
+with the `user` role, and not all of them are typed by you — a compaction summary, a
+message from another session, an interruption notice all arrive in that role. Measured
+across every transcript on the development machine: **0 of 23** reads that squint could
+have acted on carried such a goal. The hole is real in the code and unobserved in the
+data, and at n=23 the upper bound is roughly 12%. It is written down rather than patched
+on a guess.
+
+Fail-open was re-checked end to end against the compiled binary, not the source: six
+refusal paths including an unparseable payload, all **exit 0, empty stdout, Read
+untouched**. After the reorder a live call still narrows — `report.ts` to lines 481–741
+around a target at 614, confidence 0.89 — and still refuses a *correct* pick at 0.49,
+because the floor is 0.60 and that is the trade it is there to make.
+
+---
+
 ## When it does nothing, which is often
 
 The hook refuses far more often than it acts. That is the design, not a shortfall.
@@ -638,6 +675,9 @@ these defaults.
   oversize control, eight the open-ended rate. The paired design separates signal from
   noise at those sizes; it does not characterise a tail.
 - **One repository.** The one-file-in-six eligibility rate is a property of that codebase.
+- **The goal can also be a message you never wrote.** A compaction summary or a note
+  from another session arrives with the `user` role and would be aimed at like any goal.
+  Never observed in 23 real opportunities, never guarded against either. See §7.
 - **Windows-first.** Developed and measured on Windows 11, Node 24. Nothing in it is
   platform-specific, and nothing in it has been measured elsewhere.
 
@@ -647,7 +687,7 @@ these defaults.
 
 ```bash
 npm run typecheck     # tsc --noEmit
-npm test              # build, then node --test  (61 tests)
+npm test              # build, then node --test  (85 tests)
 npm run build
 ```
 

@@ -689,11 +689,110 @@ It is reported rather than retried, because a timeout is the fail-open path work
 
 ---
 
+## 6-bis. The audit before beta: two ordering defects, found and fixed
+
+Date: 2026-09-21. A read-through of the whole source before declaring beta. Nothing here
+was believed until it was measured, including the things that were obvious from the code.
+
+### The file was read before the hook asked whether it needed it
+
+`main()` called `readFileSync` and then `preflight`. Two of the refusals preflight makes —
+`agent-set-window` and `excluded-path` — need nothing from the file at all.
+
+Measured by giving the hook a small and a large file on each of those paths, best of
+three runs each:
+
+| path | 1 KB / 2 KB | 40 MB | reading? |
+|---|---:|---:|---|
+| `Secrets/…` (excluded) | 43 ms | **89 ms** | yes |
+| explicit `offset`/`limit` set by the agent | 39 ms | **89 ms** | yes |
+
+The project rule is that an excluded path is **never read and never sent**. The second
+half held — nothing left the machine — and the first did not.
+
+Fixed by splitting the ladder into four stages that touch progressively more: the tool
+call alone, then `stat` for the size gate, then the file, then the transcript. Same
+refusal reasons in the same order, so no Read changes its outcome.
+
+| path | 1 KB / 2 KB | 40 MB |
+|---|---:|---:|
+| `Secrets/…` (excluded) | 43 ms | **45 ms** |
+| explicit `offset`/`limit` | 44 ms | **39 ms** |
+
+The transcript moved last because it is the most expensive read of the four: **29 ms on
+an 8.2 MB session**, and worth nothing on a Read that was never going to be narrowed.
+
+The test that guards this asks the hook to narrow a path under `Secrets/` **that does not
+exist**. A hook that reads before deciding cannot answer `excluded-path` — it would have
+to say the file is unreadable — so the old order cannot come back silently.
+
+### `squint off` wrote its config where you were standing
+
+The hook reads `.squint.json` from `CLAUDE_PROJECT_DIR`. The CLI wrote it to
+`process.cwd()`. Run from a subdirectory:
+
+```
+$ cd src/deep && squint off
+squint · off · …/src/deep/.squint.json      <-- the hook never reads this
+```
+
+It printed `off` and narrowing stayed on. A switch that lies about being off is worse
+than one that fails. `report` had the same split and answered "No reads recorded yet"
+from any subdirectory.
+
+Fixed by giving the CLI the same notion of a project root the hook has:
+`CLAUDE_PROJECT_DIR` when set, otherwise walk up for a marker.
+
+**And that fix had a bug the test caught.** The marker list included `.claude` — which
+exists in the *home directory* of every machine that has ever run Claude Code. Any
+unmarked directory under home therefore resolved to home itself, and `squint off` would
+have written `~/.squint.json`, disabling narrowing for every project at once. Home is now
+excluded from the walk. A second, smaller one followed: Windows hands out 8.3 short names,
+so `C:/Users/ALICEJ~1` and `C:/Users/alice.jones` are one directory that a string
+compare calls two. Both paths are resolved before comparison.
+
+### One latent defect, recorded and not fixed
+
+`lastUserMessage` accepts any message carrying the `user` role. Several kinds are written
+by the system rather than typed: a compaction continuation, a message relayed from another
+session, an interruption notice, a `Caveat:` preamble. Any of them would be aimed at as
+though it were a goal — the same failure as §6, but with a specific and detectable trigger.
+
+Counted across every transcript on the development machine, at each Read squint could
+have acted on:
+
+| | |
+|---|---:|
+| reads with no explicit window (where squint can fire) | 23 |
+| of those, carrying a goal the user actually typed | **23** |
+| carrying a system-written goal | **0** |
+
+Real in the code, unobserved in the data. At n = 23 the upper bound is roughly 12% (rule
+of three), which is not small — but a guard written against zero observations is a guess,
+and §6 is on this page precisely because thresholds chosen that way do not survive. It is
+written down instead.
+
+### Fail-open, re-checked against the binary
+
+Six paths driven through the compiled `dist/src/hook.js` with payloads on stdin, including
+one that is not JSON. Every one: **exit 0, empty stdout, the Read untouched**, and no part
+of the excluded file in either stream.
+
+After the reorder, a live call still narrows: `.jef/src/report.ts` (1.306 lines) to lines
+481–741 for a target hand-located at 614, confidence 0.89, 21.893 input tokens, 1.576 ms.
+A second target at 388 was picked at line 371 — **a correct pick** — and refused anyway at
+confidence 0.49 against the 0.60 floor. That is the floor doing the job it was calibrated
+for, and it is the cost side of it.
+
+---
+
 ## 7. What was not measured
 
-- **Only one model.** Everything ran on `claude-haiku-4-5`. The mechanism is
-  model-independent in principle — it changes what the tool returns, not what the model
-  decides — but the size of the effect is not.
+- **Two models, not one — and a third is still unmeasured.** The battery ran on
+  `claude-haiku-4-5` and the same design was re-run unchanged on `claude-opus-5` (§1-bis).
+  The mechanism is model-independent in principle — it changes what the tool returns, not
+  what the model decides — and the size of the effect held across both. Nothing says it
+  holds on a third.
 - **Only one repository.** One TypeScript codebase, 29 files. The eligibility ratio that
   the whole saving scales by is a property of *your* repository, not of squint.
 - **Delegation.** The open-ended numbers describe an agent working in-session, because a
@@ -703,6 +802,9 @@ It is reported rather than retried, because a timeout is the fail-open path work
 - **A stale goal — now measured, see §6, and it is the worst thing on this page.**
   What is still *not* measured is how often it happens in real work. The battery cannot
   say, because every session in it has one user turn.
+- **How often the goal is a message you never wrote.** Zero times in 23 real
+  opportunities (§6-bis), which at that n bounds it near 12% rather than establishing it
+  is rare.
 - **Small n where it is smallest.** Nineteen fired pairs carry the headline. Four pairs
   carry the oversize control. Eight carry the open-ended rate. The paired design separates
   signal from noise at these sizes; it does not characterise a tail.

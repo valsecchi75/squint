@@ -132,8 +132,9 @@ export type Outcome =
    * that to someone's file is the one outcome that is not acceptable. So it is SAID.
    *
    * Preserving the original bytes exactly needs a textual graft that inserts the entry
-   * without reprinting the rest. That is a beta item; this alpha reports the fact
-   * instead of hiding it.
+   * without reprinting the rest. Still not done at beta, and still reported rather than
+   * hidden: an installer that silently reshapes a file you did not ask it to touch is
+   * the one outcome that is not acceptable, so it says so and you decide.
    */
   | 'installed-reformatted'
   | 'uninstalled-reformatted';

@@ -15,7 +15,7 @@
  * routinely contains spaces.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -27,7 +27,8 @@ import {
   buildQuestions,
   confidenceAccepted,
   narrowingNote,
-  preflight,
+  preflightNoFile,
+  preflightSize,
   windowFor,
   type PassReason,
 } from './policy.js';
@@ -196,15 +197,44 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
     const projectRoot = deps.projectRoot ?? env['CLAUDE_PROJECT_DIR'] ?? process.cwd();
 
     const { narrow, jev } = loadConfig(projectRoot);
-
-    // The cheap refusals first, and NOTHING is read from disk before they clear.
-    if (!narrow.enabled) return pass('disabled', 'narrow.enabled is false');
-    if (toolName !== 'Read') return pass('not-a-read', `tool is ${toolName}`);
-    if (filePath === '') return pass('no-path', 'no file_path');
-
     const shown = shortPath(filePath, projectRoot);
-    const hasWindow = toolInput['offset'] !== undefined || toolInput['limit'] !== undefined;
 
+    // STAGE 1 - what the tool call alone decides. NOTHING is opened here, and for an
+    // excluded path that is a guarantee rather than a saving: `Secrets/` must not be
+    // READ, not merely withheld. The old single pass had it backwards - it pulled a
+    // 40 MB excluded file into memory and refused it afterwards (43 -> 89 ms, measured
+    // 2026-09-21).
+    const cheap = preflightNoFile(
+      {
+        toolName,
+        hasExplicitWindow: toolInput['offset'] !== undefined || toolInput['limit'] !== undefined,
+        path: shown,
+        excluded: isExcludedPath(filePath),
+      },
+      narrow,
+    );
+    // These ledger lines carry `totalLines: 0` and no `goalAgeTurns`, because neither
+    // the file nor the transcript was opened. 0 here means UNREAD, not empty. Nothing
+    // consumes either field on a refusal: both are only ever read off narrowed records.
+    if (cheap.action === 'pass') {
+      return pass(cheap.reason, cheap.detail, () => append(projectRoot, record(sessionId, shown, 0, { reason: cheap.reason })));
+    }
+
+    // STAGE 2 - the size gate, answered from `stat` so an oversized file is refused
+    // without being loaded. For valid UTF-8 the size on disk equals the byte length of
+    // the decoded text, which is the number the old code paid a full read to learn.
+    let bytes: number;
+    try {
+      bytes = statSync(filePath).size;
+    } catch {
+      return pass('no-path', 'unreadable file');
+    }
+    const oversized = preflightSize(bytes, narrow);
+    if (oversized.action === 'pass') {
+      return pass(oversized.reason, oversized.detail, () => append(projectRoot, record(sessionId, shown, 0, { reason: oversized.reason })));
+    }
+
+    // STAGE 3 - only now is the file worth opening.
     let data: string;
     try {
       data = readFileSync(filePath, 'utf8');
@@ -212,22 +242,20 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
       return pass('no-path', 'unreadable file');
     }
     const lines = data.split('\n');
-    const goal = lastUserMessage(transcript);
+    if (lines.length < narrow.minLines) {
+      return pass('file-too-small', `${lines.length} lines, under the ${narrow.minLines}-line floor`, () =>
+        append(projectRoot, record(sessionId, shown, lines.length, { reason: 'file-too-small' })),
+      );
+    }
 
-    const pre = preflight(
-      {
-        toolName,
-        hasExplicitWindow: hasWindow,
-        path: shown,
-        totalLines: lines.length,
-        totalBytes: Buffer.byteLength(data, 'utf8'),
-        goal: goal.text,
-        excluded: isExcludedPath(filePath),
-      },
-      narrow,
-    );
-    if (pre.action === 'pass') {
-      return pass(pre.reason, pre.detail, () => append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: pre.reason })));
+    // STAGE 4 - the transcript last, because it is the most expensive read of the four:
+    // 29 ms on an 8.2 MB session (measured 2026-09-21), and worth nothing on a Read that
+    // was never going to be narrowed.
+    const goal = lastUserMessage(transcript);
+    if (goal.text.trim().length < narrow.minGoalChars) {
+      return pass('no-goal', `goal is ${goal.text.trim().length} chars, under ${narrow.minGoalChars}`, () =>
+        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'no-goal' })),
+      );
     }
 
     const { chunks, criteria } = buildChunks(lines, narrow);

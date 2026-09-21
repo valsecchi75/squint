@@ -9,10 +9,10 @@
  * small, or the model was unsure - and "nothing happened" looks identical in all three.
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 
 import { CONFIG_FILENAME, loadConfig } from './config.js';
@@ -23,6 +23,60 @@ import type { NarrowRecord } from './types.js';
 
 const OK = 'ok';
 const NO = 'MISSING';
+
+// --- where the project is ------------------------------------------------------
+
+/**
+ * The project root, computed the way the HOOK computes it.
+ *
+ * The two halves must agree or they talk past each other. The hook writes its ledger
+ * and reads `.squint.json` under `CLAUDE_PROJECT_DIR`; `report`, `on` and `off` used
+ * the current directory instead. Run from a subdirectory, `squint off` wrote a config
+ * file at `src/deep/.squint.json` that the hook never reads - it printed `off` and
+ * narrowing stayed on, which is worse than failing (measured 2026-09-21).
+ *
+ * `CLAUDE_PROJECT_DIR` wins when Claude Code set it, because then it IS the answer.
+ * Otherwise walk up for a marker: an existing ledger or config first, since those are
+ * squint's own and say where it has been working.
+ */
+export const ROOT_MARKERS = [LEDGER_DIR, CONFIG_FILENAME, '.claude', '.git'] as const;
+
+/**
+ * The same directory spelled the same way.
+ *
+ * Windows hands out 8.3 short names - `C:/Users/ALICEJ~1` and `C:/Users/alice.jones`
+ * are one directory - and a string compare says they are two.
+ * The home guard below is a string compare, so it has to be done on resolved paths.
+ */
+export function canonicalDir(p: string): string {
+  try {
+    return realpathSync.native(resolve(p));
+  } catch {
+    return resolve(p);
+  }
+}
+
+export function projectRootFrom(cwd: string, env: NodeJS.ProcessEnv): string {
+  const declared = env['CLAUDE_PROJECT_DIR'];
+  if (typeof declared === 'string' && declared.trim() !== '') return canonicalDir(declared.trim());
+  const start = canonicalDir(cwd);
+  // HOME IS NEVER A PROJECT. `~/.claude` exists on every machine that has ever run
+  // Claude Code, so without this the walk from any directory under home would stop
+  // there and report it as the project - `squint off` would write `~/.squint.json`
+  // and silently disable narrowing everywhere. Found by the test below, not in review.
+  const home = canonicalDir(homedir());
+  let dir = start;
+  for (;;) {
+    if (dir !== home) {
+      for (const marker of ROOT_MARKERS) if (existsSync(join(dir, marker))) return dir;
+    }
+    const up = dirname(dir);
+    // Nothing marked all the way to the drive root: the current directory is as good an
+    // answer as exists, and it is the one the old code always gave.
+    if (up === dir) return start;
+    dir = up;
+  }
+}
 
 // --- reading the ledger --------------------------------------------------------
 
@@ -274,12 +328,15 @@ export async function run(argv: readonly string[], deps: CliDeps): Promise<{ tex
       const checks = doctorChecks(deps.env, deps.platform, deps.installRoot, target);
       return { text: renderDoctor(checks), code: checks.every((c) => c.ok) ? 0 : 1 };
     }
-    case 'report':
-      return { text: renderReport(readLedger(deps.cwd), deps.cwd), code: 0 };
+    case 'report': {
+      const root = projectRootFrom(deps.cwd, deps.env);
+      return { text: renderReport(readLedger(root), root), code: 0 };
+    }
 
     case 'on':
     case 'off': {
-      const path = setEnabled(deps.cwd, cmd === 'on');
+      // Written where the HOOK will look for it, not where you happen to stand.
+      const path = setEnabled(projectRootFrom(deps.cwd, deps.env), cmd === 'on');
       return { text: `squint · ${cmd} · ${path}`, code: 0 };
     }
     case 'key': {

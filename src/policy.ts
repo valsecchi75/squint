@@ -64,24 +64,37 @@ export type Preflight =
   | { action: 'pass'; reason: PassReason; detail: string }
   | { action: 'ask' };
 
-export interface PreflightInput {
+/** What can be decided from the tool call alone, with no disk access of any kind. */
+export interface NoFileInput {
   toolName: string;
   hasExplicitWindow: boolean;
   /** Already normalised by the caller; only used to report, never re-read here. */
   path: string;
-  totalLines: number;
-  totalBytes: number;
-  goal: string;
   /** True when sanitize.isExcludedPath said so: Secrets/ and .env never leave (ERR-001). */
   excluded: boolean;
 }
 
+export interface PreflightInput extends NoFileInput {
+  totalLines: number;
+  totalBytes: number;
+  goal: string;
+}
+
 /**
- * Everything that can be decided WITHOUT a call. Ordered cheapest-first so the common
- * refusals cost nothing: on this repository only 6 files of 27 in `.jef/src`, and 40 of
- * 230 overall, pass the size gate at all (measured 2026-09-20), so most Reads stop here.
+ * The refusals that need NOTHING but the tool call itself - not the file, not the
+ * transcript, not even the file's size.
+ *
+ * Split out from `preflight` so the caller can reach them BEFORE touching the disk.
+ * That ordering is the whole point and it was a measured defect, not a tidy-up: with
+ * the checks folded into one pass the hook read the file first and asked afterwards,
+ * so a 40 MB path under `Secrets/` was pulled into memory and only then refused
+ * (43 ms -> 89 ms, measured 2026-09-21). The project rule is that an excluded path is
+ * never READ and never sent; only the second half of that was true.
+ *
+ * The order inside is unchanged, so the reason a given Read is refused is the same
+ * reason it was refused before.
  */
-export function preflight(input: PreflightInput, config: NarrowConfig): Preflight {
+export function preflightNoFile(input: NoFileInput, config: NarrowConfig): Preflight {
   if (!config.enabled) return { action: 'pass', reason: 'disabled', detail: 'readNarrowing.enabled is false' };
   if (input.toolName !== 'Read') return { action: 'pass', reason: 'not-a-read', detail: `tool is ${input.toolName}` };
   if (input.path === '') return { action: 'pass', reason: 'no-path', detail: 'no file_path in tool_input' };
@@ -94,8 +107,34 @@ export function preflight(input: PreflightInput, config: NarrowConfig): Prefligh
   }
 
   // ERR-001 is absolute and comes before any size consideration: the GOAL text and the
-  // file chunks both leave towards TypeSafe, so an excluded path must never get here.
+  // file chunks both leave towards TypeSafe, so an excluded path must never get here -
+  // and, since this runs before the read, its bytes are never even loaded.
   if (input.excluded) return { action: 'pass', reason: 'excluded-path', detail: 'path is excluded from egress' };
+
+  return { action: 'ask' };
+}
+
+/** The size gate on its own, so a file over the limit is refused from `stat` alone. */
+export function preflightSize(totalBytes: number, config: NarrowConfig): Preflight {
+  if (totalBytes > config.maxBytes) {
+    return { action: 'pass', reason: 'file-too-large', detail: `${totalBytes} bytes, over the ${config.maxBytes}-byte single-request limit` };
+  }
+  return { action: 'ask' };
+}
+
+/**
+ * Everything that can be decided WITHOUT a call, in one pass. Ordered cheapest-first so
+ * the common refusals cost nothing: on this repository only 6 files of 27 in `.jef/src`,
+ * and 40 of 230 overall, pass the size gate at all (measured 2026-09-20), so most Reads
+ * stop here.
+ *
+ * The hook does NOT call this - it walks the same three stages by hand so it can read
+ * the file only once it knows it needs it. This stays because it is the whole ladder in
+ * one place, which is what the tests check against.
+ */
+export function preflight(input: PreflightInput, config: NarrowConfig): Preflight {
+  const cheap = preflightNoFile(input, config);
+  if (cheap.action === 'pass') return cheap;
 
   if (input.totalLines < config.minLines) {
     return { action: 'pass', reason: 'file-too-small', detail: `${input.totalLines} lines, under the ${config.minLines}-line floor` };
@@ -106,9 +145,8 @@ export function preflight(input: PreflightInput, config: NarrowConfig): Prefligh
   // target 3 times in 11 while a single-request file has not lost one in 23. For `find`
   // a wrong line is a hint beside a correct file; here it would hide code, so the file
   // is refused rather than narrowed.
-  if (input.totalBytes > config.maxBytes) {
-    return { action: 'pass', reason: 'file-too-large', detail: `${input.totalBytes} bytes, over the ${config.maxBytes}-byte single-request limit` };
-  }
+  const size = preflightSize(input.totalBytes, config);
+  if (size.action === 'pass') return size;
 
   if (input.goal.trim().length < config.minGoalChars) {
     return { action: 'pass', reason: 'no-goal', detail: `goal is ${input.goal.trim().length} chars, under ${config.minGoalChars}` };
