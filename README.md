@@ -61,8 +61,18 @@ does not depend on the model cooperating, or on it noticing.
 
 Needs **Node ≥ 20**, Claude Code, and a [TypeSafe](https://docs.typesafe.ai) API key.
 
-**Four commands.** Clone anywhere you keep tools — the clone is not your project, and
-squint is not installed *into* a project's source.
+**On Windows, one file.** Download
+[`install.bat`](https://raw.githubusercontent.com/valsecchi75/squint/master/install.bat),
+put it anywhere — the Desktop is fine — and run it from a `cmd` prompt or with a double
+click. It clones into `%USERPROFILE%\tools\squint`, builds, registers the hook for every
+project, then **asks for your TypeSafe key once** and stores it in your user environment
+with `setx`. The key is typed by you and never written into the file or the repository.
+Run it as the same Windows user that runs Claude Code, and open a **new** terminal
+afterwards. Running it again is safe: it pulls, re-installs idempotently, and an empty
+answer at the key prompt writes nothing.
+
+**Everywhere else, four commands.** Clone anywhere you keep tools — the clone is not your
+project, and squint is not installed *into* a project's source.
 
 ```bash
 git clone https://github.com/valsecchi75/squint
