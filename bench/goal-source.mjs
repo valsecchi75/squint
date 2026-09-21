@@ -9,9 +9,13 @@
  * METODO: replay offline. Legge OGNI transcript di Claude Code presente sulla macchina,
  * scorre le righe con LO STESSO fold che usa il hook (`foldGoal` / `finishGoal` da
  * dist/src/hook.js, non una copia) e, a ogni `tool_use` di Read senza offset/limit,
- * fotografa il goal che il hook avrebbe visto in quel momento. La riga assistant che
- * contiene il tool_use viene contata PRIMA della foto: nel transcript reale e' scritta
- * 70 ms prima che il hook scatti (misurato 2026-09-21 su una sessione della batteria).
+ * fotografa il goal che il hook avrebbe visto in quel momento. Il turno assistant che
+ * contiene il tool_use NON e' ancora nel transcript quando il hook scatta: il ledger di
+ * 10 sessioni reali dice `goalAgeTurns: 0` su ogni Read fatta al primo turno (2026-09-21,
+ * batteria minlines200). La foto si scatta quindi allo stato PRIMA del turno corrente -
+ * le righe di un turno condividono `message.id`. Una prima versione contava anche quel
+ * turno fidandosi dei timestamp, che dicono quando un messaggio e' nato e non quando e'
+ * stato scritto su disco: i suoi numeri erano piu' alti di 1-3 per ogni Read.
  *
  * Nessuna chiamata, nessun costo, nessun dato personale in uscita: il JSON pubblicato
  * porta solo conteggi, categorie ed eta' in turni. Mai il testo, mai un percorso.
@@ -74,12 +78,19 @@ for (const dir of readdirSync(base)) {
     // La categoria del messaggio che ha fornito il testo: la stessa cosa che `source`
     // dice in due valori, tenuta a grana fine per la tabella.
     let lastCategory = 'none';
+    // Lo stato com'era PRIMA del turno assistant in corso: e' quello che il hook vede.
+    let snapshot = { ...state, category: lastCategory };
+    let turnId = null;
     let raw;
     try { raw = readFileSync(join(pdir, name), 'utf8'); } catch { continue; }
     for (const line of raw.split('\n')) {
       if (line.trim() === '') continue;
       let o;
       try { o = JSON.parse(line); } catch { continue; }
+      if (o.type === 'assistant' && o.message?.id !== turnId) {
+        turnId = o.message?.id ?? null;
+        snapshot = { ...state, category: lastCategory };
+      }
       const before = state.last;
       foldGoal(state, o);
       if (o.type === 'user' && state.last !== before) lastCategory = category(state.last, o);
@@ -90,11 +101,11 @@ for (const dir of readdirSync(base)) {
         if (input.offset !== undefined || input.limit !== undefined) continue;
         const filePath = String(input.file_path ?? '');
         if (filePath === '' || isExcludedPath(filePath)) continue;
-        const goal = finishGoal(state);
+        const goal = finishGoal(snapshot);
         opportunities.push({
           sidechain: o.isSidechain === true,
           source: goal.source,
-          category: goal.text === '' ? 'empty-after-cut' : lastCategory,
+          category: goal.text === '' ? 'empty-after-cut' : snapshot.category,
           ageTurns: goal.ageTurns,
           goalChars: goal.text.length,
           eligibleNow: eligibleNow(filePath),

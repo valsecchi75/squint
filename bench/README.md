@@ -27,6 +27,7 @@ It is here so the measurements can be re-run rather than believed.
 | `calibrate.mjs` | at what confidence does the window stop containing the answer? No Claude sessions — only Jev calls, so it costs cents. |
 | `targets-small.mjs` | i 37 bersagli della fascia 150-400 righe, scritti a mano il 2026-09-21: si passano a `calibrate.mjs` come quarto argomento, cosi' l'harness resta uno solo. |
 | `goal-source.mjs` | chi ha scritto il goal e quanto era vecchio, a ogni Read reale sulla macchina: replay offline di tutti i transcript con lo stesso fold del hook. Nessuna chiamata, nessun dato personale in uscita. |
+| `system-goal.mjs` | un goal scritto dal sistema (corpo di skill, notifica di subagent) inganna il pavimento come uno stale? Jev soltanto, centesimi. Risposta: no, 1/45. |
 | `charts.mjs` | regenerates the three SVGs in `docs/img` from the raw data. |
 
 ## The design, and why it is shaped this way
@@ -77,6 +78,7 @@ node bench/adversarial.mjs <workspace> <adversarial.jsonl> [nCases]
 node bench/adversarial-report.mjs <adversarial.jsonl> [battery.jsonl]
 node bench/calibrate.mjs <srcDir> <calibration.json> [targets.mjs]   # es. bench/targets-small.mjs
 node bench/goal-source.mjs [out.json]
+node bench/system-goal.mjs <srcDir> <out.json>
 node bench/charts.mjs <battery.jsonl> <calibration.json> <outDir>
 node bench/guessability.mjs <workspace> <out.jsonl> [nCases]
 node bench/stale-goal.mjs <srcDir> <out.json>

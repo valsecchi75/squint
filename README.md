@@ -558,9 +558,9 @@ on a guess.
 
 **Correction, one day later: that count was wrong, and the defect is not rare.** The
 detector did not know Claude Code's own label for a harness-written message. Re-measured
-on 381 transcripts and **457 real reads**: **64 goals (14.0%) were never typed** — 40
+on 401 transcripts and **477 real reads**: **63 goals (13.2%) were never typed** — 39
 were the body of a skill the harness had injected, 21 were a subagent's task
-notification. On the reads whose file the hook would actually act on, 5 of 145 (3.4%).
+notification. On the reads whose file the hook would actually act on, 4 of 145 (2.8%).
 The ledger now records who wrote the goal (`goalSource`) and how old it was
 (`goalAgeTurns`); **nothing branches on either yet**, and what the data would support is
 stated in [`docs/evidence.md`](docs/evidence.md) §6-ter.
@@ -607,7 +607,7 @@ Per narrowing, one request to `api.typesafe.ai` carrying:
 - **the file's contents**, split into numbered chunks — this is the point, and the thing to
   weigh before pointing it at a private repository;
 - **the last message that carried your role**, truncated to 600 characters and scrubbed.
-  Measured on 457 real reads, 14% of the time that is not something you typed but
+  Measured on 477 real reads, 13% of the time that is not something you typed but
   something the harness injected under your name — most often the body of a skill, which
   begins with an absolute path. The scrub does not remove a username. See §7;
 - **the file's path**, relative to the project root, never absolute.
@@ -703,10 +703,10 @@ these defaults.
   oversize control, eight the open-ended rate. The paired design separates signal from
   noise at those sizes; it does not characterise a tail.
 - **One repository.** The one-file-in-six eligibility rate is a property of that codebase.
-- **The goal can also be a message you never wrote — and it is, 14% of the time.** A
+- **The goal can also be a message you never wrote — and it is, 13% of the time.** A
   skill body, a subagent's notification or a compaction summary arrives with the `user`
-  role and would be aimed at like any goal. Measured on 457 real reads: 64 such goals,
-  5 of them on files the hook would have acted on. Recorded in the ledger, not yet
+  role and would be aimed at like any goal. Measured on 477 real reads: 63 such goals,
+  4 of them on files the hook would have acted on. Recorded in the ledger, not yet
   guarded against. See §7.
 - **Windows-first.** Developed and measured on Windows 11, Node 24. Nothing in it is
   platform-specific, and nothing in it has been measured elsewhere.
@@ -745,7 +745,7 @@ motivated it, never without.
 
 | version | date | what changed | tests |
 |---|---|---|---:|
-| **0.1.0-beta.2** | 2026-09-21 | A ceiling on Jev calls per session (`maxCallsPerSession`, 50, refusal `budget-spent`). The installer splices its entry into `settings.json` byte for byte and verifies the splice. The band below the 400-line floor calibrated: 37/37 targets inside the window ([§2-bis](docs/evidence.md)). The ledger records who wrote the goal: measured on 457 real reads, 14% of goals were written by the harness, not the user ([§6-ter](docs/evidence.md)). Three ordering defects fixed. | 108 |
+| **0.1.0-beta.2** | 2026-09-21 | A ceiling on Jev calls per session (`maxCallsPerSession`, 50, refusal `budget-spent`). The installer splices its entry into `settings.json` byte for byte and verifies the splice. The band below the 400-line floor calibrated: 37/37 targets inside the window ([§2-bis](docs/evidence.md)). The ledger records who wrote the goal: measured on 477 real reads, 13% of goals were written by the harness, not the user ([§6-ter](docs/evidence.md)). Three ordering defects fixed. Same day, two live tests of the two decisions this left open: a system-written goal does not fool the confidence floor, 1 narrowing in 45 ([§6-quinquies](docs/evidence.md)); the floor at 200 lines in real sessions is null at n = 10 ([§2-ter](docs/evidence.md)). | 108 |
 | 0.1.0-beta.1 | 2026-09-21 | Beta. The hook decides before it reads: an excluded path is never opened (43 → 45 ms on a 40 MB file, was 89). `squint off` writes where the hook reads. The goal's age recorded in the ledger. | 85 |
 | 0.1.0-alpha | 2026-09-20 | The hook, the ledger, the installer, `/squint`, and the evidence: 184 paired runs, −47% new tokens and −37% cost on the reads it fires on, the placebo and stale-goal controls. | 61 |
 

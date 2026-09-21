@@ -97,6 +97,11 @@ compression on a relationship measured at ρ = 0.01 is trading a certainty for a
 > The floor has **not** been moved: that is a separate decision (ERR-028), and the one
 > cost this did not measure is ~350 ms of latency on every read of a 200-line file for a
 > 25% saving on it.
+>
+> **Then tested live, same day** — the SMALL stratum re-run paired with the floor at 200
+> (§2-ter): **null at n = 10**. Every fired pair saved tokens (6/6, nothing hidden), one
+> outlier run in the control arm made the spread wider than the effect, and the
+> preregistered rule does not bend for that. $0.69. Settling it needs ~40 pairs.
 
 **What is known.** 40 of 230 files pass the gate on the repository this was built
 against; 6 of 29 in `.jef/src`. That is a coverage measurement, not a justification of
@@ -212,9 +217,12 @@ exactly the kind of invisible behaviour the ledger exists to prevent.
 > **Instrumented and measured 2026-09-21** — the ledger now carries `goalAgeTurns` and
 > `goalSource`, and an offline replay of 381 real transcripts gave both distributions:
 > **14.0% of goals were written by the harness, not the user** (skill bodies, task
-> notifications), and the goal's age has a median of 2 turns and a p90 of 32. Nothing
-> branches on either field yet; what the data would support is stated in
-> [`evidence.md`](evidence.md) §6-ter.
+> notifications), and more than half of all reads happen in the first turn after the
+> user spoke (age 0; p90 25 entries). Nothing branches on either field yet; what the
+> data would support is stated in [`evidence.md`](evidence.md) §6-ter — and the obvious
+> rule was then tested (§6-quinquies): **a system-written goal does not fool the floor**.
+> Jev answers it at median confidence 0.27 and the hook narrows on 1 of 45. Refusing
+> such goals saves the call and the privacy leak, not the window.
 
 **This is the largest unmeasured risk in the design, and the benchmark cannot see it.**
 

@@ -1,49 +1,50 @@
 {
   "measuredOn": "2026-09-21",
-  "transcripts": 381,
-  "readsWithoutWindow": 458,
-  "ofWhichGoalUsable": 457,
+  "transcripts": 401,
+  "readsWithoutWindow": 478,
+  "ofWhichGoalUsable": 477,
   "ofWhichFileEligibleToday": 145,
   "bySource": {
     "all": {
-      "user": 393,
-      "system": 64
+      "user": 414,
+      "system": 63
     },
     "eligibleToday": {
-      "user": 140,
-      "system": 5
+      "user": 141,
+      "system": 4
     }
   },
   "byCategory": {
     "all": {
-      "user": 393,
-      "skill-body": 40,
+      "user": 414,
+      "skill-body": 39,
       "task-notification": 21,
       "image": 3
     },
     "eligibleToday": {
-      "user": 140,
-      "skill-body": 5
+      "user": 141,
+      "skill-body": 4
     }
   },
   "ageTurns": {
     "all": {
-      "p50": 2,
-      "p90": 32,
-      "p99": 91,
-      "max": 147
+      "p50": 0,
+      "p90": 25,
+      "p99": 89,
+      "max": 142
     },
     "eligibleToday": {
-      "p50": 2,
-      "p90": 6,
-      "p99": 13,
-      "max": 13
+      "p50": 0,
+      "p90": 4,
+      "p99": 8,
+      "max": 10
     },
     "histogram": {
-      "1-5": 300,
-      "6-20": 96,
-      "21-50": 31,
-      ">50": 30
+      "0": 277,
+      "1-5": 92,
+      "6-20": 48,
+      "21-50": 32,
+      ">50": 28
     }
   },
   "emptyAfterCut": 1

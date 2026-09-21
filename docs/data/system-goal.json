@@ -1,0 +1,864 @@
+{
+  "goals": {
+    "skill-squint": "Base directory for this skill: /home/user/.claude/skills\n\n\n# squint\n\nThe narrowing hook has no interface of its own: it runs inside every `Read` and then gets\nout of the way. This skill is how a person asks it what it has been doing.\n\n`SQUINT_CLI` below is the path this skill was installed with. Run it with `node`.\n\n## What the user asked for\n\nMatch the argument after `/squint`:\n\n| argument | run |\n|---|---|\n| *(nothing)* | `node \"SQUINT_CLI\" report` then `node \"SQUINT_CLI\" doctor` |\n| `report` | `node \"SQUINT_CLI\" report` |\n| `doctor`, `status`, `check` | `node \"SQUINT_CLI\" doctor` |\n| `on` /",
+    "skill-jef": "Base directory for this skill: /home/user/.claude/skills\n\n\n# JEF\n\nRun every command from the project root. JEF is advisory: it never blocks work, and\nwhen it is unavailable you simply work as usual.\n\n## `/jef <task>`\n\nThe JEF hook normally does the analysis for you. It runs on `UserPromptExpansion` before\nthis prompt reaches you, and it injects a `JEF ROUTING` block as a system reminder.\n\n1. **Look for the `JEF ROUTING` block first.** If it is there, the analysis has already\n   happened: use it and go to step 3. Do not run the CLI — that would ask Jev the same\n   question a second time and pay",
+    "task-notification": "<task-notification>\n<task-id>b1ulror9i</task-id>\n<tool-use-id>toolu_017tFnj61sRxuM2akVysduoq</tool-use-id>\n<output-file>/tmp/claude/tasks/b1ulror9i.output</output-file>\n<status>completed</status>\n<summary>Background command \"npm test\" completed (exit code 0)</summary>\n</task-notification>"
+  },
+  "results": [
+    {
+      "id": "A1",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 388,
+      "goalKind": "skill-squint",
+      "conf": 0.19,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 22067,
+      "elapsedMs": 1529
+    },
+    {
+      "id": "A1",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 388,
+      "goalKind": "skill-jef",
+      "conf": 0.39,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 22049,
+      "elapsedMs": 1267
+    },
+    {
+      "id": "A1",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 388,
+      "goalKind": "task-notification",
+      "conf": 0.18,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 21990,
+      "elapsedMs": 638
+    },
+    {
+      "id": "A2",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 912,
+      "goalKind": "skill-squint",
+      "conf": 0.19,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 22067,
+      "elapsedMs": 474
+    },
+    {
+      "id": "A2",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 912,
+      "goalKind": "skill-jef",
+      "conf": 0.39,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 22049,
+      "elapsedMs": 644
+    },
+    {
+      "id": "A2",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 912,
+      "goalKind": "task-notification",
+      "conf": 0.17,
+      "picked": 1301,
+      "window": {
+        "offset": 1046,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 21990,
+      "elapsedMs": 518
+    },
+    {
+      "id": "A3",
+      "stratum": "LARGE",
+      "file": "cli.ts",
+      "totalLines": 1041,
+      "trueLine": 370,
+      "goalKind": "skill-squint",
+      "conf": 0.54,
+      "picked": 1001,
+      "window": {
+        "offset": 833,
+        "limit": 208
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19980787704130643,
+      "inTok": 17757,
+      "elapsedMs": 453
+    },
+    {
+      "id": "A3",
+      "stratum": "LARGE",
+      "file": "cli.ts",
+      "totalLines": 1041,
+      "trueLine": 370,
+      "goalKind": "skill-jef",
+      "conf": 0.42,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 208
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19980787704130643,
+      "inTok": 17739,
+      "elapsedMs": 601
+    },
+    {
+      "id": "A3",
+      "stratum": "LARGE",
+      "file": "cli.ts",
+      "totalLines": 1041,
+      "trueLine": 370,
+      "goalKind": "task-notification",
+      "conf": 0.3,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 208
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19980787704130643,
+      "inTok": 17680,
+      "elapsedMs": 468
+    },
+    {
+      "id": "A4",
+      "stratum": "LARGE",
+      "file": "escalation.ts",
+      "totalLines": 508,
+      "trueLine": 188,
+      "goalKind": "skill-squint",
+      "conf": 0.18,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2952755905511811,
+      "inTok": 8705,
+      "elapsedMs": 341
+    },
+    {
+      "id": "A4",
+      "stratum": "LARGE",
+      "file": "escalation.ts",
+      "totalLines": 508,
+      "trueLine": 188,
+      "goalKind": "skill-jef",
+      "conf": 0.24,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2952755905511811,
+      "inTok": 8687,
+      "elapsedMs": 358
+    },
+    {
+      "id": "A4",
+      "stratum": "LARGE",
+      "file": "escalation.ts",
+      "totalLines": 508,
+      "trueLine": 188,
+      "goalKind": "task-notification",
+      "conf": 0.22,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2952755905511811,
+      "inTok": 8628,
+      "elapsedMs": 340
+    },
+    {
+      "id": "A5",
+      "stratum": "LARGE",
+      "file": "pipeline.ts",
+      "totalLines": 630,
+      "trueLine": 337,
+      "goalKind": "skill-squint",
+      "conf": 0.21,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.23809523809523808,
+      "inTok": 10623,
+      "elapsedMs": 378
+    },
+    {
+      "id": "A5",
+      "stratum": "LARGE",
+      "file": "pipeline.ts",
+      "totalLines": 630,
+      "trueLine": 337,
+      "goalKind": "skill-jef",
+      "conf": 0.29,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.23809523809523808,
+      "inTok": 10605,
+      "elapsedMs": 375
+    },
+    {
+      "id": "A5",
+      "stratum": "LARGE",
+      "file": "pipeline.ts",
+      "totalLines": 630,
+      "trueLine": 337,
+      "goalKind": "task-notification",
+      "conf": 0.24,
+      "picked": 161,
+      "window": {
+        "offset": 86,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.23809523809523808,
+      "inTok": 10546,
+      "elapsedMs": 368
+    },
+    {
+      "id": "A6",
+      "stratum": "LARGE",
+      "file": "install-settings.ts",
+      "totalLines": 738,
+      "trueLine": 229,
+      "goalKind": "skill-squint",
+      "conf": 0.25,
+      "picked": 61,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2032520325203252,
+      "inTok": 12364,
+      "elapsedMs": 364
+    },
+    {
+      "id": "A6",
+      "stratum": "LARGE",
+      "file": "install-settings.ts",
+      "totalLines": 738,
+      "trueLine": 229,
+      "goalKind": "skill-jef",
+      "conf": 0.23,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2032520325203252,
+      "inTok": 12346,
+      "elapsedMs": 385
+    },
+    {
+      "id": "A6",
+      "stratum": "LARGE",
+      "file": "install-settings.ts",
+      "totalLines": 738,
+      "trueLine": 229,
+      "goalKind": "task-notification",
+      "conf": 0.22,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2032520325203252,
+      "inTok": 12287,
+      "elapsedMs": 351
+    },
+    {
+      "id": "A7",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 1168,
+      "goalKind": "skill-squint",
+      "conf": 0.17,
+      "picked": 801,
+      "window": {
+        "offset": 671,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 22067,
+      "elapsedMs": 753
+    },
+    {
+      "id": "A7",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 1168,
+      "goalKind": "skill-jef",
+      "conf": 0.42,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 261
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 22049,
+      "elapsedMs": 645
+    },
+    {
+      "id": "A7",
+      "stratum": "LARGE",
+      "file": "report.ts",
+      "totalLines": 1307,
+      "trueLine": 1168,
+      "goalKind": "task-notification",
+      "conf": 0.19,
+      "picked": 1301,
+      "window": {
+        "offset": 1046,
+        "limit": 261
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.19969395562356543,
+      "inTok": 21990,
+      "elapsedMs": 652
+    },
+    {
+      "id": "A8",
+      "stratum": "LARGE",
+      "file": "cli.ts",
+      "totalLines": 1041,
+      "trueLine": 136,
+      "goalKind": "skill-squint",
+      "conf": 0.53,
+      "picked": 1001,
+      "window": {
+        "offset": 833,
+        "limit": 208
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.19980787704130643,
+      "inTok": 17757,
+      "elapsedMs": 464
+    },
+    {
+      "id": "A8",
+      "stratum": "LARGE",
+      "file": "cli.ts",
+      "totalLines": 1041,
+      "trueLine": 136,
+      "goalKind": "skill-jef",
+      "conf": 0.35,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 208
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.19980787704130643,
+      "inTok": 17739,
+      "elapsedMs": 453
+    },
+    {
+      "id": "A8",
+      "stratum": "LARGE",
+      "file": "cli.ts",
+      "totalLines": 1041,
+      "trueLine": 136,
+      "goalKind": "task-notification",
+      "conf": 0.27,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 208
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.19980787704130643,
+      "inTok": 17680,
+      "elapsedMs": 547
+    },
+    {
+      "id": "A9",
+      "stratum": "LARGE",
+      "file": "install-settings.ts",
+      "totalLines": 738,
+      "trueLine": 493,
+      "goalKind": "skill-squint",
+      "conf": 0.25,
+      "picked": 61,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2032520325203252,
+      "inTok": 12364,
+      "elapsedMs": 352
+    },
+    {
+      "id": "A9",
+      "stratum": "LARGE",
+      "file": "install-settings.ts",
+      "totalLines": 738,
+      "trueLine": 493,
+      "goalKind": "skill-jef",
+      "conf": 0.24,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2032520325203252,
+      "inTok": 12346,
+      "elapsedMs": 538
+    },
+    {
+      "id": "A9",
+      "stratum": "LARGE",
+      "file": "install-settings.ts",
+      "totalLines": 738,
+      "trueLine": 493,
+      "goalKind": "task-notification",
+      "conf": 0.16,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2032520325203252,
+      "inTok": 12287,
+      "elapsedMs": 387
+    },
+    {
+      "id": "A10",
+      "stratum": "LARGE",
+      "file": "escalation.ts",
+      "totalLines": 508,
+      "trueLine": 428,
+      "goalKind": "skill-squint",
+      "conf": 0.23,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2952755905511811,
+      "inTok": 8705,
+      "elapsedMs": 354
+    },
+    {
+      "id": "A10",
+      "stratum": "LARGE",
+      "file": "escalation.ts",
+      "totalLines": 508,
+      "trueLine": 428,
+      "goalKind": "skill-jef",
+      "conf": 0.27,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2952755905511811,
+      "inTok": 8687,
+      "elapsedMs": 342
+    },
+    {
+      "id": "A10",
+      "stratum": "LARGE",
+      "file": "escalation.ts",
+      "totalLines": 508,
+      "trueLine": 428,
+      "goalKind": "task-notification",
+      "conf": 0.27,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.2952755905511811,
+      "inTok": 8628,
+      "elapsedMs": 433
+    },
+    {
+      "id": "B1",
+      "stratum": "SMALL",
+      "file": "typesafe-client.ts",
+      "totalLines": 314,
+      "trueLine": 223,
+      "goalKind": "skill-squint",
+      "conf": 0.26,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.47770700636942676,
+      "inTok": 5323,
+      "elapsedMs": 341
+    },
+    {
+      "id": "B1",
+      "stratum": "SMALL",
+      "file": "typesafe-client.ts",
+      "totalLines": 314,
+      "trueLine": 223,
+      "goalKind": "skill-jef",
+      "conf": 0.29,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.47770700636942676,
+      "inTok": 5305,
+      "elapsedMs": 344
+    },
+    {
+      "id": "B1",
+      "stratum": "SMALL",
+      "file": "typesafe-client.ts",
+      "totalLines": 314,
+      "trueLine": 223,
+      "goalKind": "task-notification",
+      "conf": 0.32,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.47770700636942676,
+      "inTok": 5246,
+      "elapsedMs": 415
+    },
+    {
+      "id": "B2",
+      "stratum": "SMALL",
+      "file": "load-config.ts",
+      "totalLines": 351,
+      "trueLine": 165,
+      "goalKind": "skill-squint",
+      "conf": 0.18,
+      "picked": 21,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.42735042735042733,
+      "inTok": 6912,
+      "elapsedMs": 323
+    },
+    {
+      "id": "B2",
+      "stratum": "SMALL",
+      "file": "load-config.ts",
+      "totalLines": 351,
+      "trueLine": 165,
+      "goalKind": "skill-jef",
+      "conf": 0.54,
+      "picked": 341,
+      "window": {
+        "offset": 201,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.42735042735042733,
+      "inTok": 6894,
+      "elapsedMs": 329
+    },
+    {
+      "id": "B2",
+      "stratum": "SMALL",
+      "file": "load-config.ts",
+      "totalLines": 351,
+      "trueLine": 165,
+      "goalKind": "task-notification",
+      "conf": 0.75,
+      "picked": 341,
+      "window": {
+        "offset": 201,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": true,
+      "chance": 0.42735042735042733,
+      "inTok": 6835,
+      "elapsedMs": 390
+    },
+    {
+      "id": "B3",
+      "stratum": "SMALL",
+      "file": "state-store.ts",
+      "totalLines": 366,
+      "trueLine": 73,
+      "goalKind": "skill-squint",
+      "conf": 0.25,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.4098360655737705,
+      "inTok": 6173,
+      "elapsedMs": 400
+    },
+    {
+      "id": "B3",
+      "stratum": "SMALL",
+      "file": "state-store.ts",
+      "totalLines": 366,
+      "trueLine": 73,
+      "goalKind": "skill-jef",
+      "conf": 0.28,
+      "picked": 51,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.4098360655737705,
+      "inTok": 6155,
+      "elapsedMs": 334
+    },
+    {
+      "id": "B3",
+      "stratum": "SMALL",
+      "file": "state-store.ts",
+      "totalLines": 366,
+      "trueLine": 73,
+      "goalKind": "task-notification",
+      "conf": 0.32,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.4098360655737705,
+      "inTok": 6096,
+      "elapsedMs": 360
+    },
+    {
+      "id": "B4",
+      "stratum": "SMALL",
+      "file": "sanitize.ts",
+      "totalLines": 258,
+      "trueLine": 105,
+      "goalKind": "skill-squint",
+      "conf": 0.4,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.5813953488372093,
+      "inTok": 4684,
+      "elapsedMs": 341
+    },
+    {
+      "id": "B4",
+      "stratum": "SMALL",
+      "file": "sanitize.ts",
+      "totalLines": 258,
+      "trueLine": 105,
+      "goalKind": "skill-jef",
+      "conf": 0.4,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.5813953488372093,
+      "inTok": 4666,
+      "elapsedMs": 358
+    },
+    {
+      "id": "B4",
+      "stratum": "SMALL",
+      "file": "sanitize.ts",
+      "totalLines": 258,
+      "trueLine": 105,
+      "goalKind": "task-notification",
+      "conf": 0.27,
+      "picked": 41,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": true,
+      "narrows": false,
+      "chance": 0.5813953488372093,
+      "inTok": 4607,
+      "elapsedMs": 375
+    },
+    {
+      "id": "B5",
+      "stratum": "SMALL",
+      "file": "repository-index.ts",
+      "totalLines": 318,
+      "trueLine": 241,
+      "goalKind": "skill-squint",
+      "conf": 0.38,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.4716981132075472,
+      "inTok": 5053,
+      "elapsedMs": 344
+    },
+    {
+      "id": "B5",
+      "stratum": "SMALL",
+      "file": "repository-index.ts",
+      "totalLines": 318,
+      "trueLine": 241,
+      "goalKind": "skill-jef",
+      "conf": 0.32,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.4716981132075472,
+      "inTok": 5035,
+      "elapsedMs": 360
+    },
+    {
+      "id": "B5",
+      "stratum": "SMALL",
+      "file": "repository-index.ts",
+      "totalLines": 318,
+      "trueLine": 241,
+      "goalKind": "task-notification",
+      "conf": 0.41,
+      "picked": 1,
+      "window": {
+        "offset": 1,
+        "limit": 150
+      },
+      "recall": false,
+      "narrows": false,
+      "chance": 0.4716981132075472,
+      "inTok": 4976,
+      "elapsedMs": 337
+    }
+  ]
+}

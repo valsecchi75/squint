@@ -293,6 +293,55 @@ correct or near-correct picks, the same shape §2 reports as the cost side of th
 
 ---
 
+## 2-ter. The floor at 200, in live sessions: **null at n = 10**
+
+Date: 2026-09-21. §2-bis said the band below 400 is not riskier. This asks whether
+lowering the floor *saves anything an agent can feel*, with real Claude sessions rather
+than Jev calls. The intuition written before the run: yes on tokens, and about 350 ms
+more per read.
+
+**The design.** The `SMALL` stratum of the battery — B1–B5, five files of 257 to 365
+lines, the original negative control — re-run paired, 2 repetitions, `claude-haiku-4-5`,
+the two arms byte-identical in `src/` (same hash) and different only in the hook, with
+`minLines: 200` in the ON arm's `.squint.json`. The preregistered rule of `run.mjs`
+applies unchanged: a mean paired delta smaller than its standard deviation is null.
+`[ACTUAL]` 20 runs, **$0.6889**, 37.586 Jev input tokens; one earlier attempt produced
+no sessions at all (the harness could not find the `claude` binary from a POSIX shell)
+and its 15 empty rows were set aside in a separate file, not mixed in. Raw data in
+[`data/minlines200.jsonl`](data/minlines200.jsonl).
+
+| per run | without squint | with squint, floor 200 | paired delta | verdict |
+|---|---:|---:|---:|---|
+| new tokens read | 23.944 | 17.747 | **−25.9% ± 62.6%** | **NULL** |
+| cost | $0.0380 | $0.0309 | −18.7% ± 46.6% | **NULL** |
+| time | 9.6 s | 12.4 s | +29.1% ± 49.5% | **NULL** |
+| correct answers | 10/10 | 10/10 | | |
+| hook fired | | **6/10**, target inside the window **6/6** | | |
+
+**Null, and the reason is one pair.** In B1 rep 1 the OFF arm read 76.052 new tokens
+against 17.000–20.000 in every other run of either arm, on the same prompt and the same
+file. That single run carries the whole standard deviation: without it the deltas of the
+six fired pairs are −1.717, −2.247, −2.390, −2.990, −4.023 tokens and one at −48.681 —
+all the same sign, and each between 9% and 20% of the run. The rule was written to stop
+exactly this kind of reasoning after the fact, so the verdict stands: **at n = 10, not
+established.** A battery of the size that settled the LARGE stratum (40 pairs) would be
+needed, at about $1.40.
+
+**What the ten runs do show, as description rather than verdict.** Where the hook fired
+it hid nothing (6/6), and the saving per read was of the size §2-bis predicted — a
+300-line file is about 5.000 tokens, the window keeps half. Four of ten calls did not
+narrow: three came back `unavailable` in the first repetition (one timeout at 6.004 ms,
+two transport failures at 2.270 and 2.833 ms — all fail-open, all reads untouched) and
+one was refused at 0.59 against the 0.60 floor. The time cost is larger than the 350 ms
+the calibration measured: the hook's own call ran 880–5.491 ms here, and the mean run
+was 2.8 s slower, though that too is inside the noise.
+
+**Decision.** `minLines` stays at 400. The data now say: not riskier (§2-bis), positive in
+expectation on cost (O6), not demonstrated in live sessions at this sample size, and
+slower by an amount the sample cannot pin down.
+
+---
+
 ## 3. What it costs to run
 
 `[ACTUAL]` Across 31 narrowing calls in the battery, one call averaged **14.408 input
@@ -867,58 +916,116 @@ the hook would have seen at that moment, who wrote it, and how many assistant tu
 it was. No call is made and nothing personal is written: the published file
 ([`data/goal-source.json`](data/goal-source.json)) holds counts and turn ages only.
 
-One ordering fact first, because it decides how the ages read. `[ACTUAL]` The assistant
-line carrying the `tool_use` is written to the transcript **70 ms before** the hook fires
-(a battery session: transcript line at 16:34:05.496, ledger record at 16:34:05.566). The
-hook therefore always counts that turn, and **`goalAgeTurns` is never 0 at a Read**; the
-replay counts it the same way.
+One ordering fact first, because it decides how the ages read, and the first version of
+this section got it wrong. It inferred from timestamps that the assistant turn carrying
+the `tool_use` was already in the transcript when the hook fired, and counted it. A
+timestamp says when a message was born, not when it reached the disk. `[ACTUAL]` The
+ledger of ten real sessions (§2-ter) records **`goalAgeTurns: 0`** on every Read made in
+the first turn: **the current assistant turn is not in the transcript yet**. The replay
+now takes its snapshot before that turn (its lines share a `message.id`), and the ages
+below are 1–3 lower than the first version reported. The unit is assistant transcript
+*entries* — a turn that thinks, speaks and calls a tool is three of them — because that
+is what the hook counts.
 
-**Who wrote the goal.** `[ACTUAL]`, 457 reads with a goal of at least 12 characters:
+**Who wrote the goal.** `[ACTUAL]`, 477 reads with a goal of at least 12 characters, over
+401 transcripts (the twenty sessions of §2-ter included):
 
 | the message the goal came from | reads | share |
 |---|---:|---:|
-| typed by the user | 393 | 86.0% |
-| a skill body injected by the harness (`Base directory for this skill: …`) | **40** | 8.8% |
-| a task notification from a subagent | **21** | 4.6% |
-| an image attachment | 3 | 0.7% |
-| **written by the system, total** | **64** | **14.0%** |
+| typed by the user | 414 | 86.8% |
+| a skill body injected by the harness (`Base directory for this skill: …`) | **39** | 8.2% |
+| a task notification from a subagent | **21** | 4.4% |
+| an image attachment | 3 | 0.6% |
+| **written by the system, total** | **63** | **13.2%** |
 
 On the subset whose file would pass the size gates today — 145 reads of files that still
-exist, at or over 400 lines and under 80.000 bytes — the share is **5 of 145 (3.4%)**, all
-five skill bodies. The other 59 sat on files the hook would have refused for size, so the
-14% is the rate at which the *goal* is wrong and the 3.4% is the rate at which the hook
-would have *acted* on it, on this machine's history.
+exist, at or over 400 lines and under 80.000 bytes — the share is **4 of 145 (2.8%)**, all
+skill bodies. The other 59 sat on files the hook would have refused for size, so the 13%
+is the rate at which the *goal* is wrong and the 2.8% is the rate at which the hook would
+have *acted* on it, on this machine's history. (The first version of this section, on 457
+reads, read 64 / 14.0% and 5 / 3.4%; the difference is the snapshot correction above plus
+twenty new sessions.)
 
 A skill body deserves its own line. It begins with an absolute path — which carries the
 username — followed by the skill's prose, and the first 600 characters of that would have
 gone to TypeSafe as "the last thing you typed". The README's statement of what leaves the
-machine is wrong for these 40 reads, and the scrub does not remove a username.
+machine is wrong for these 39 reads, and the scrub does not remove a username.
 
-**How old the goal was.** `[ACTUAL]`, assistant turns between the user's message and the
-Read, all 457:
+**How old the goal was.** `[ACTUAL]`, assistant entries between the user's message and the
+Read, all 477:
 
 | | p50 | p90 | p99 | max |
 |---|---:|---:|---:|---:|
-| all reads | 2 | 32 | 91 | 147 |
-| files that pass the size gates today | 2 | 6 | — | 13 |
+| all reads | **0** | 25 | 89 | 142 |
+| files that pass the size gates today | 0 | 4 | — | 10 |
 
-Histogram, all reads: 1–5 turns **300** · 6–20 **96** · 21–50 **31** · over 50 **30**.
-The median read happens two turns after the user spoke; one read in ten happens more than
-thirty turns later, in a session that has long moved on. On the eligible subset the tail
-is shorter, at a maximum of 13.
+Histogram, all reads: 0 entries **277** · 1–5 **92** · 6–20 **48** · 21–50 **32** · over
+50 **28**. **More than half of all reads happen in the first turn after the user spoke**,
+with a goal that is by construction fresh. One read in ten happens more than 25 entries
+later, in a session that has long moved on; on the eligible subset the tail ends at 10.
 
 **What now exists that did not.** The ledger records `goalSource` beside `goalAgeTurns`,
 so the same two distributions accumulate on every machine squint runs on, not only this
 one. **Nothing branches on either field.** What the data would support, stated so the
 decision can be made rather than implied: refusing a `system` goal is not a threshold but
 a label — a skill body or a task notification is never the user's request, by
-construction — and on this history it would have cost 64 of 457 opportunities and 5 of
+construction — and on this history it would have cost 63 of 477 opportunities and 4 of
 145 eligible ones. A cut-off on age is a threshold, and the distribution above is the
 first one anybody could set it against.
 
 **What is still not measured.** Whether a system-written goal produces a *wrong* window as
 reliably as a stale one does in §6. It is a goal about something else by construction, so
 the expectation is yes, and the expectation has not been tested.
+
+`[TESTED 2026-09-21, see §6-quinquies]` **The expectation was wrong.** A stale goal is a
+well-formed question about code and Jev answers it confidently; a skill body or a task
+notification is not a question, and Jev answers with confidence 0.16–0.75, median 0.27.
+The 0.60 floor already refuses 44 of 45. Refusing `system` goals does not remove wrong
+windows — the floor does — it removes the *call*, and with it the skill prose and the
+username that would have left the machine.
+
+---
+
+## 6-quinquies. Does a system-written goal fool the floor the way a stale one does? No.
+
+Date: 2026-09-21. Intuition to validate: "refusing `system` goals removes the 14% of wrong
+aims for the price of 3% of the narrowings". That is only true if the hook *narrows* on
+such a goal. Written before the run
+([`bench/system-goal.mjs`](../bench/system-goal.mjs)): **P1** recall ≈ chance; **P2**,
+the one that decides, narrowings at the 0.60 floor above 50%, because on stale goals it
+was 11/11 — and if under 20%, the floor already sees it and the rule is not worth its
+price.
+
+**The test.** The 15 battery targets with a true line (10 files of 507–1307 lines, 5 of
+257–365), each paired with three real system-written shapes rebuilt from public text: the
+body of squint's own skill, the body of the `/jef` skill — which talks about the very code
+in the corpus, the most misleading case — and a task notification in the exact form seen
+in transcripts. Each cut to 600 characters and scrubbed, as the hook does. 45 calls,
+`[ACTUAL]` 546.438 input tokens, `[ESTIMATED]` $0.023. Raw data in
+[`data/system-goal.json`](data/system-goal.json).
+
+| | skill body (squint) | skill body (`/jef`) | task notification | all |
+|---|---:|---:|---:|---:|
+| windows containing the target | 2/15 | 3/15 | 4/15 | **9/45**, chance 31% |
+| **would narrow (conf ≥ 0.60)** | **0/15** | **0/15** | **1/15** | **1/45** |
+| would narrow and lose the target | 0/15 | 0/15 | 1/15 | 1/45 |
+| confidence, min – median – max | | | | 0.16 – **0.27** – 0.75 |
+
+**P1 held** — 9/45 against 31% by chance, slightly worse, and 32 of 45 picks landed on
+the file's first chunk, which is where an unanswerable question goes. **P2 was refuted**:
+one narrowing in 45, not more than half. A stale goal (§6) is a real question about code
+in the same file and Jev locates *something* for it with confidence up to 0.98; a skill
+body is prose about a tool and Jev says, in its own way, that nothing here implements it.
+The one case above the floor (0.75, a task notification on `load-config.ts`) is the
+kind of thing the floor is known to let through occasionally.
+
+**What this changes.** The intuition as stated is wrong: refusing `system` goals would
+remove almost no wrong window, because the floor already does. What it would remove is
+the **call itself** — on this machine's history 64 of 457, each ~350–1.500 ms and
+4.500–22.000 tokens — and, with it, the one thing the README promised would not leave:
+the first 600 characters of a skill body, opening with an absolute path that carries the
+username. The rule is justified on **cost and privacy**, not on recall, and that is a
+different and smaller claim than the one made before this test.
 
 ---
 
@@ -1004,8 +1111,8 @@ discards a goal, which is the safe direction, and keeping it would aim at someth
   those goals produce a wrong window as reliably as a stale one does.
 - **Whether the 400-line floor should move.** The band below it is now measured
   (§2-bis: 37/37, smaller pick errors than above) and its cost curve was already known.
-  What is not measured is whether users accept ~350 ms on every read of a 200-line file
-  for a 25% saving on it. The floor is unchanged.
+  A live paired test at floor 200 came out **null at n = 10** (§2-ter): same sign in
+  every fired pair, one outlier run wide enough to swallow it. The floor is unchanged.
 - **Small n where it is smallest.** Nineteen fired pairs carry the headline. Four pairs
   carry the oversize control. Eight carry the open-ended rate. The paired design separates
   signal from noise at these sizes; it does not characterise a tail.
