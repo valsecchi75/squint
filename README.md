@@ -9,7 +9,7 @@
 [![cost](https://img.shields.io/badge/cost%20on%20those%20reads-−37%25-3fb950)](#1-does-it-save-anything)
 [![recall](https://img.shields.io/badge/target%20inside%20the%20window-19%20of%2019-3fb950)](#2-does-it-hide-code)
 [![runs](https://img.shields.io/badge/measured%20on-184%20paired%20runs-3fb950)](#the-evidence)
-[![tests](https://img.shields.io/badge/tests-85%20passing-3fb950)](#develop)
+[![tests](https://img.shields.io/badge/tests-108%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -117,28 +117,29 @@ Remove it with `npm run uninstall-hook`. The uninstall is a command you can actu
 not a paragraph in a README.
 
 <details>
-<summary><b>What the installer touches, and the one thing it gets wrong</b></summary>
+<summary><b>What the installer touches</b></summary>
 
 <br>
 
 It **merges, never rewrites**. Other hooks, permissions and keys are carried through
-untouched; an uninstall removes only the entry it added; a `settings.json` it cannot parse
-is left alone rather than overwritten.
+untouched; an uninstall removes only the entry it added; a `settings.json` it cannot
+parse — or cannot read at all — is left alone rather than overwritten.
 
-**The limitation, reported rather than hidden.** The entry is added by re-serialising the
-parsed file. Indentation and line endings are preserved, but an inline array or object
-gets expanded onto several lines. The JSON is equivalent and nothing is lost — but a
-hand-formatted `settings.json` will show unrelated lines as changed in a diff. When that
-happens the installer says so:
+**The entry is spliced into your file's bytes, not re-printed.** A hand-formatted
+`settings.json` — inline arrays, tabs, CRLF, no final newline, keys in your own order —
+comes back with every line you wrote intact, and an uninstall returns it byte for byte.
+The splice is never trusted on its own: the result is re-parsed and compared with the
+merge it was supposed to produce, and on any disagreement the installer falls back to
+re-serialising the whole file **and says so**:
 
 ```
 squint · install · installed-reformatted · /path/.claude/settings.json
-  note: the entry was added, but your settings.json was hand-formatted and has
-  been re-printed. The JSON is equivalent and nothing was lost - but unrelated
-  lines will show as changed in a diff. Check it before committing.
+  note: your settings.json was hand-formatted and has been re-printed.
+  The JSON is equivalent and nothing was lost, but unrelated lines will
+  show as changed in a diff. Check it before committing.
 ```
 
-Preserving the original bytes exactly needs a textual graft. That is a beta item.
+The one known way to reach that fallback is a file with duplicate keys.
 
 </details>
 
@@ -555,6 +556,22 @@ have acted on carried such a goal. The hole is real in the code and unobserved i
 data, and at n=23 the upper bound is roughly 12%. It is written down rather than patched
 on a guess.
 
+**Correction, one day later: that count was wrong, and the defect is not rare.** The
+detector did not know Claude Code's own label for a harness-written message. Re-measured
+on 381 transcripts and **457 real reads**: **64 goals (14.0%) were never typed** — 40
+were the body of a skill the harness had injected, 21 were a subagent's task
+notification. On the reads whose file the hook would actually act on, 5 of 145 (3.4%).
+The ledger now records who wrote the goal (`goalSource`) and how old it was
+(`goalAgeTurns`); **nothing branches on either yet**, and what the data would support is
+stated in [`docs/evidence.md`](docs/evidence.md) §6-ter.
+
+**A second audit, the day after.** A ceiling on calls per session (default 50 — no real
+session has made more than 1), the byte-for-byte installer above, and three more
+orderings: a chunk count answered after the transcript was paid for, an installer that
+took "cannot read" for "does not exist" and wrote anyway, and `squint off` replacing a
+`.squint.json` it could not parse. All in [`docs/evidence.md`](docs/evidence.md)
+§6-quater.
+
 Fail-open was re-checked end to end against the compiled binary, not the source: six
 refusal paths including an unparseable payload, all **exit 0, empty stdout, Read
 untouched**. After the reorder a live call still narrows — `report.ts` to lines 481–741
@@ -569,7 +586,8 @@ The hook refuses far more often than it acts. That is the design, not a shortfal
 
 | it leaves the read alone when | why |
 |---|---|
-| the file is under **400 lines** | inherited, and **not justified by cost**: the break-even is ~156 lines ([`optimizations.md`](docs/optimizations.md) O6). What 400 buys is margin against a risk nobody has measured below 508 lines |
+| the file is under **400 lines** | inherited, and **not justified by cost**: the break-even is ~156 lines ([`optimizations.md`](docs/optimizations.md) O6). The band below was then measured — 37 of 37 targets in 164–379-line files landed inside the window, with *smaller* pick errors than above ([`evidence.md`](docs/evidence.md) §2-bis) — so the floor is now justified by neither cost nor risk. It stays at 400 until it is deliberately moved: the one unmeasured cost is ~350 ms on every read of a small file |
+| the session has already paid for **50 calls** | a bound on a runaway, not a tuned value: no measured session made more than 1. Recorded as `budget-spent`, never silent |
 | the file is over **80,000 bytes** | it would need splitting, and confidences from different sections are not comparable — measured upstream, that path loses the target 3 times in 11. Claude Code's own ceiling (25,000 tokens ≈ 84,900 bytes) sits just above it |
 | the agent already set `offset` or `limit` | that is its own decision about this file, and overriding it would break the escape hatch too |
 | the transcript yields no goal | there is nothing to narrow *towards* |
@@ -588,7 +606,10 @@ Per narrowing, one request to `api.typesafe.ai` carrying:
 
 - **the file's contents**, split into numbered chunks — this is the point, and the thing to
   weigh before pointing it at a private repository;
-- **the last thing you typed**, truncated to 600 characters and scrubbed;
+- **the last message that carried your role**, truncated to 600 characters and scrubbed.
+  Measured on 457 real reads, 14% of the time that is not something you typed but
+  something the harness injected under your name — most often the body of a skill, which
+  begins with an absolute path. The scrub does not remove a username. See §7;
 - **the file's path**, relative to the project root, never absolute.
 
 Never sent: your key beyond the auth header, any file matching `.env` / `secrets/` /
@@ -610,8 +631,14 @@ Every read the hook **looked at** gets one JSONL line — narrowed or not.
 ```json
 {"timestamp":"2026-09-20T15:04:11.482Z","sessionId":"...","path":"src/report.ts",
  "totalLines":1307,"narrowed":true,"offset":781,"limit":261,"pickedLine":911,
- "confidence":0.93,"exists":0.93,"linesAvoided":1046,"inputTokens":21935,"elapsedMs":1495}
+ "confidence":0.93,"exists":0.93,"linesAvoided":1046,"inputTokens":21935,"elapsedMs":1495,
+ "goalAgeTurns":2,"goalSource":"user"}
 ```
+
+`goalAgeTurns` is how many assistant turns separated your last message from this read;
+`goalSource` says whether that message was typed by you or written by the harness under
+your role. Both are recorded and **neither is acted on** — they exist so the distribution
+can be seen before any rule is written against it.
 
 The refusals are **the denominator**, and they are recorded for exactly that reason: a
 ledger of successes only would report a 100% hit rate for a hook that fires on one file in
@@ -640,7 +667,8 @@ Optional `.squint.json` in the project root. Every default is a measured value, 
     "maxChunks": 200,
     "chunkLines": 10,
     "minGoalChars": 12,
-    "timeoutMs": 6000
+    "timeoutMs": 6000,
+    "maxCallsPerSession": 50
   },
   "jev": { "model": "jev-latest", "host": "api.typesafe.ai" }
 }
@@ -675,9 +703,11 @@ these defaults.
   oversize control, eight the open-ended rate. The paired design separates signal from
   noise at those sizes; it does not characterise a tail.
 - **One repository.** The one-file-in-six eligibility rate is a property of that codebase.
-- **The goal can also be a message you never wrote.** A compaction summary or a note
-  from another session arrives with the `user` role and would be aimed at like any goal.
-  Never observed in 23 real opportunities, never guarded against either. See §7.
+- **The goal can also be a message you never wrote — and it is, 14% of the time.** A
+  skill body, a subagent's notification or a compaction summary arrives with the `user`
+  role and would be aimed at like any goal. Measured on 457 real reads: 64 such goals,
+  5 of them on files the hook would have acted on. Recorded in the ledger, not yet
+  guarded against. See §7.
 - **Windows-first.** Developed and measured on Windows 11, Node 24. Nothing in it is
   platform-specific, and nothing in it has been measured elsewhere.
 
@@ -687,7 +717,7 @@ these defaults.
 
 ```bash
 npm run typecheck     # tsc --noEmit
-npm test              # build, then node --test  (85 tests)
+npm test              # build, then node --test  (108 tests)
 npm run build
 ```
 

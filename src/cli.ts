@@ -239,21 +239,25 @@ export function renderDoctor(checks: readonly Check[]): string {
  * runs and still records that it was asked and declined. Uninstalling hides the fact
  * that it was ever there, and those are different things to want.
  */
-export function setEnabled(projectRoot: string, enabled: boolean): string {
+export function setEnabled(projectRoot: string, enabled: boolean): { path: string; written: boolean } {
   const path = join(projectRoot, CONFIG_FILENAME);
   let raw: Record<string, unknown> = {};
   if (existsSync(path)) {
     try {
       raw = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
     } catch {
-      raw = {};
+      // The same rule the installer follows: what could not be read is not overwritten.
+      // The hook treats a malformed file as defaults, so the switch is already "on" in
+      // effect - but the file may hold values the user meant to fix, and replacing it
+      // with `{narrow:{enabled}}` would throw those away without a word.
+      return { path, written: false };
     }
   }
   const narrow = (typeof raw['narrow'] === 'object' && raw['narrow'] !== null ? raw['narrow'] : {}) as Record<string, unknown>;
   narrow['enabled'] = enabled;
   raw['narrow'] = narrow;
   writeFileSync(path, JSON.stringify(raw, null, 2) + '\n', 'utf8');
-  return path;
+  return { path, written: true };
 }
 
 // --- persisting the key ----------------------------------------------------------
@@ -336,7 +340,10 @@ export async function run(argv: readonly string[], deps: CliDeps): Promise<{ tex
     case 'on':
     case 'off': {
       // Written where the HOOK will look for it, not where you happen to stand.
-      const path = setEnabled(projectRootFrom(deps.cwd, deps.env), cmd === 'on');
+      const { path, written } = setEnabled(projectRootFrom(deps.cwd, deps.env), cmd === 'on');
+      if (!written) {
+        return { text: `squint · ${cmd} · corrupt · ${path}\n  That file is not valid JSON, so it was left alone. Fix it, or delete it, and run this again.`, code: 1 };
+      }
       return { text: `squint · ${cmd} · ${path}`, code: 0 };
     }
     case 'key': {

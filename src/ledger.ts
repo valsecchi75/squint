@@ -14,7 +14,7 @@
  * its own failures.
  */
 
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, isAbsolute, join, relative, sep } from 'node:path';
 
 import type { NarrowRecord } from './types.js';
@@ -52,13 +52,45 @@ export function scrub(text: string): string {
     .replace(/\b(api[_-]?key|token|secret|password|passwd)\s*[:=]\s*\S+/gi, '$1=[redacted]');
 }
 
+const sessionFile = (projectRoot: string, sessionId: string): string => {
+  const safe = sessionId.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 64) || 'unknown';
+  return join(projectRoot, LEDGER_DIR, `session-${safe}.jsonl`);
+};
+
 export function appendRecord(projectRoot: string, record: NarrowRecord): void {
   try {
-    const dir = join(projectRoot, LEDGER_DIR);
-    mkdirSync(dir, { recursive: true });
-    const safe = record.sessionId.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 64) || 'unknown';
-    appendFileSync(join(dir, `session-${safe}.jsonl`), JSON.stringify(record) + '\n', 'utf8');
+    mkdirSync(join(projectRoot, LEDGER_DIR), { recursive: true });
+    appendFileSync(sessionFile(projectRoot, record.sessionId), JSON.stringify(record) + '\n', 'utf8');
   } catch {
     // The ledger is never allowed to cost a Read.
   }
+}
+
+/**
+ * How many calls this session has already paid for, read back from its own ledger.
+ *
+ * A call that was billed carries `inputTokens`; a refusal never does. Counting rows
+ * would count the refusals, and the ceiling is on spending, not on looking. A call that
+ * timed out is not counted either - the hook never learned what it cost - so the
+ * ceiling bounds the calls that answered, which is the case a runaway session is made of.
+ *
+ * Fail-open like everything else here: a missing or unreadable ledger is zero calls.
+ */
+export function countCalls(projectRoot: string, sessionId: string): number {
+  let raw: string;
+  try {
+    raw = readFileSync(sessionFile(projectRoot, sessionId), 'utf8');
+  } catch {
+    return 0;
+  }
+  let n = 0;
+  for (const line of raw.split('\n')) {
+    if (line.trim() === '') continue;
+    try {
+      if (typeof (JSON.parse(line) as { inputTokens?: unknown }).inputTokens === 'number') n += 1;
+    } catch {
+      // a corrupt line is not a call
+    }
+  }
+  return n;
 }

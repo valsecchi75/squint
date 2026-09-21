@@ -31,10 +31,10 @@ page. Three of the five were in the original list and looked reasonable.
 
 | | idea | expected gain, measured | verdict |
 |---|---|---|---|
-| **O9** | the goal can be stale *(new)* | **measured: 11/11 windows hide what the read needs, at confidence up to 0.98** | **the real defect — instrument it first** |
-| **O6** | re-measure the 400-line floor | the floor sits 2.5× above the cost break-even | **worth doing, ~$0.02** |
-| **O8** | textual graft in the installer | byte-for-byte `settings.json` | **worth doing, the code exists** |
-| **O11** | a per-session call ceiling *(new)* | bounds an unbounded worst case | **worth doing, ~10 lines** |
+| **O9** | the goal can be stale *(new)* | **measured: 11/11 windows hide what the read needs, at confidence up to 0.98** | **the real defect — instrument it first** → *instrumented 2026-09-21: `goalAgeTurns` + `goalSource` in the ledger; on 457 real reads 14.0% of goals were system-written, p90 age 32 turns (evidence §6-ter). Nothing branches yet.* |
+| **O6** | re-measure the 400-line floor | the floor sits 2.5× above the cost break-even | **worth doing, ~$0.02** → *measured 2026-09-21, $0.007: 37/37 recall on 164–379-line files, pick error smaller than above the floor (evidence §2-bis). The risk objection is gone; the floor stays until someone decides.* |
+| **O8** | textual graft in the installer | byte-for-byte `settings.json` | **worth doing, the code exists** → *done 2026-09-21: ported with its byte-for-byte tests, fallback unchanged (evidence §6-quater)* |
+| **O11** | a per-session call ceiling *(new)* | bounds an unbounded worst case | **worth doing, ~10 lines** → *done 2026-09-21: `maxCallsPerSession` 50, reason `budget-spent`; observed max across 75 sessions is 1 (evidence §6-quater)* |
 | **O2** | a second signal instead of a lower floor | **nothing a single threshold does not already give** | **refuted — drop it** |
 | **O1** | cache the decision within a session | **0 calls saved in 50 sessions** | **refuted — the case never occurs** |
 | **O5** | adaptive window | **none: confidence does not predict error (ρ = 0.01)** | **refuted — drop it** |
@@ -87,6 +87,16 @@ compression on a relationship measured at ρ = 0.01 is trading a certainty for a
 ---
 
 ## O6 — the 400-line floor. **Not set by cost. Possibly set by nothing.**
+
+> **Measured 2026-09-21** — the analysis below is kept as written; the result is in
+> [`evidence.md`](evidence.md) §2-bis. 37 hand-written targets in ten files of 164–379
+> lines: **37/37 windows contained the target**, pick error median 5 (against 8 above the
+> floor's band), worst above the 0.60 floor 16 lines (against 42). `[ACTUAL]` 168.305
+> input tokens, `[ESTIMATED]` $0.007 — a third of the estimate below, because a small
+> file is a small request. The risk that justified 400 over 156 is not in this sample.
+> The floor has **not** been moved: that is a separate decision (ERR-028), and the one
+> cost this did not measure is ~350 ms of latency on every read of a 200-line file for a
+> 25% saving on it.
 
 **What is known.** 40 of 230 files pass the gate on the repository this was built
 against; 6 of 29 in `.jef/src`. That is a coverage measurement, not a justification of
@@ -170,6 +180,13 @@ there, and the saving is below the precision of the rate it is computed from.
 
 ## O11 — a per-session ceiling on calls *(not in the original list)*
 
+> **Done 2026-09-21** — `narrow.maxCallsPerSession`, default 50, refusal reason
+> `budget-spent`, recorded like every other refusal and checked last of the free gates so
+> the reason is never masked. The distribution asked for below turned out to exist in the
+> published data: `[ACTUAL]` 75 sessions with the hook on, **maximum 1 call per
+> session**. Fifty is a bound past that, not a tuned threshold. Details in
+> [`evidence.md`](evidence.md) §6-quater.
+
 **The gap.** There is no cap of any kind. `hook.ts` calls Jev on every eligible Read, for
 the life of the session. A session that reads 40 large files pays `[ESTIMATED]`
 40 × 21.932 = **877.280 input tokens** to Jev, and there is nothing in the code that
@@ -191,6 +208,13 @@ exactly the kind of invisible behaviour the ledger exists to prevent.
 ---
 
 ## O9 — the goal can be stale *(not in the original list)*
+
+> **Instrumented and measured 2026-09-21** — the ledger now carries `goalAgeTurns` and
+> `goalSource`, and an offline replay of 381 real transcripts gave both distributions:
+> **14.0% of goals were written by the harness, not the user** (skill bodies, task
+> notifications), and the goal's age has a median of 2 turns and a p90 of 32. Nothing
+> branches on either field yet; what the data would support is stated in
+> [`evidence.md`](evidence.md) §6-ter.
 
 **This is the largest unmeasured risk in the design, and the benchmark cannot see it.**
 
@@ -278,6 +302,11 @@ code alone. A declared partial feature is not a defect.
 ---
 
 ## O8 — the installer reformats a hand-written `settings.json`. **Worth doing.**
+
+> **Done 2026-09-21** — ported into `install.ts` with its byte-for-byte fixtures (12
+> tests, every indent × line ending × final-newline combination). `installed-reformatted`
+> is now the verified fallback for a file the scanner cannot model, and it still says so.
+> [`evidence.md`](evidence.md) §6-quater.
 
 `install.ts` writes with `serialize()` and reports `installed-reformatted` when the
 original was not already canonical. It declares the damage rather than hiding it, which

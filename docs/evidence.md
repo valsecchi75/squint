@@ -9,6 +9,10 @@ Two rounds of measurement, both on 2026-09-20, on Claude Code build `2.1.110`, w
   break the result, a **10-run floor control** with all reading forbidden, and an offline
   probe of the one failure the battery cannot see. `[ACTUAL]` $3.4354 + $1.0052 + $0.2488,
   plus cents of Jev calls.
+- **After beta, 2026-09-21** — no new sessions. A 37-target calibration of the band below
+  the 400-line floor (§2-bis, `[ACTUAL]` 168.305 Jev input tokens, ~$0.007), an offline
+  replay of 381 real transcripts for who wrote the goal and how old it was (§6-ter, free),
+  and a second code audit (§6-quater).
 
 **The short version, if you read nothing else.** The saving is real, survives having its
 arm order reversed, and is attributable to the window being *aimed* rather than merely
@@ -229,6 +233,63 @@ The `exists` noul is confirmed unusable on our own sample, independently of upst
 window that lost its target scored **0.94**. It stays recorded and unused, because it
 rides in the same request and costs `[ESTIMATED]` about 0.1% of it.
 
+---
+
+## 2-bis. The floor re-measured below 400 lines: the chunking holds
+
+Date: 2026-09-21. The 400-line floor was inherited, and [`optimizations.md`](optimizations.md)
+O6 showed it is **not set by cost** — the break-even is about 156 lines. What remained
+was a risk nobody had measured: every calibration target above sits in a file of 508 to
+1307 lines, cut into 51–131 chunks. A 250-line file becomes 25 chunks of 10 lines, and
+whether a Choice over that behaves like one over 131 was an open question.
+
+**The test.** 37 new targets in ten files of **164 to 379 lines**, written by hand from
+reading the code on 2026-09-21 ([`bench/targets-small.mjs`](../bench/targets-small.mjs)),
+run through the same `calibrate.mjs` and the same policy as the hook. Raw data in
+[`data/calibration-small.json`](data/calibration-small.json). Cost declared before
+spending: `[ESTIMATED]` ~166.000 input tokens, ~$0.007. `[ACTUAL]` **168.305 input
+tokens**, 4.549 per call, latencies 302–921 ms, median **350 ms**.
+
+| | 508–1307 lines (26 targets, round two) | **164–379 lines (37 targets)** |
+|---|---:|---:|
+| chunks per file | 51–131 | **17–38** |
+| windows containing the target | 22/26 | **37/37** |
+| narrowings at the 0.60 floor | 12/26 | 24/37 |
+| recall above the floor | 12/12 | **24/24** |
+| pick error, median, all targets | 8 lines | **5 lines** |
+| pick error above the floor, median / worst | 6 / 42 | **4 / 16** |
+| worst error anywhere | 305 (below the floor) | 57 (at 0.42, below the floor) |
+| input tokens per call | 15.219 | 4.549 |
+| latency, median | 613 ms | 350 ms |
+| share of the file the window reads | 20–29% | 39–91%, median 58% |
+
+The floor curve on the new band, for comparison with §2:
+
+| confidence floor | narrows | recall | worst error among them |
+|---|---:|---:|---:|
+| 0.42 | 32/37 | 100% | 57 |
+| 0.50 | 28/37 | 100% | 16 |
+| **0.60 — shipped** | **24/37** | **100%** | **16** |
+| 0.70 | 23/37 | 100% | 16 |
+
+**What this establishes.** The risk objection is not supported by this sample. Fewer,
+shorter chunks did not produce a worse choice: the pick error is *smaller* than on large
+files, above the floor and overall, and no window lost its target. One caveat is stated
+rather than hidden: recall is easier here by construction, because the 150-line minimum
+window covers 39–91% of a file this size. The pick error is the number that this does not
+flatter, and it is median 4, worst 16 above the floor.
+
+**What it does not establish.** That the floor should move, and to where. The cost table
+in O6 says the band from 156 to 400 lines has positive expected value; this section says
+the band is not riskier than the one above it; what neither says is whether a call of
+~350 ms on every eligible Read is worth a saving of 25% of a 200-line file. Per ERR-028 a
+threshold is not moved in the round that measured it. **`minLines` stays at 400 in this
+commit**, and the data to decide otherwise now exists.
+
+Two smaller observations, recorded because they were not predicted. The floor refuses
+unevenly across the band — 6/7 targets pass it under 200 lines, 10/17 between 200 and
+300, 8/13 above — and all three targets in `hook-read.ts` were refused (0.27–0.43) on
+correct or near-correct picks, the same shape §2 reports as the cost side of the floor.
 
 ---
 
@@ -772,6 +833,12 @@ of three), which is not small — but a guard written against zero observations 
 and §6 is on this page precisely because thresholds chosen that way do not survive. It is
 written down instead.
 
+`[CORRECTION 2026-09-21]` **The count above was wrong, and the ~12% bound was closer to
+the truth than the zero.** The detector behind it did not know Claude Code's own label for
+a harness-written message (`isMeta`). Re-measured with it on 381 transcripts and 457
+reads: **64 of 457 (14.0%)** carried a goal the user never typed. The table is in
+§6-ter; the number here is kept so the correction can be seen.
+
 ### Fail-open, re-checked against the binary
 
 Six paths driven through the compiled `dist/src/hook.js` with payloads on stdin, including
@@ -783,6 +850,134 @@ After the reorder, a live call still narrows: `.jef/src/report.ts` (1.306 lines)
 A second target at 388 was picked at line 371 — **a correct pick** — and refused anyway at
 confidence 0.49 against the 0.60 floor. That is the floor doing the job it was calibrated
 for, and it is the cost side of it.
+
+---
+
+## 6-ter. Who wrote the goal, and how old it was, on 457 real reads
+
+Date: 2026-09-21. §6 measured what a stale goal *does* (0/11) and could not say how often
+one arises. §6-bis counted system-written goals and found none in 23. Both questions now
+have a distribution, from an offline replay rather than a guess.
+
+**The method.** [`bench/goal-source.mjs`](../bench/goal-source.mjs) reads every Claude
+Code transcript on the development machine — 381 files — and walks each one with the
+**same fold the hook uses** (`foldGoal` / `finishGoal`, imported from `dist/`, not
+copied). At every `Read` the agent issued without an explicit window it records the goal
+the hook would have seen at that moment, who wrote it, and how many assistant turns old
+it was. No call is made and nothing personal is written: the published file
+([`data/goal-source.json`](data/goal-source.json)) holds counts and turn ages only.
+
+One ordering fact first, because it decides how the ages read. `[ACTUAL]` The assistant
+line carrying the `tool_use` is written to the transcript **70 ms before** the hook fires
+(a battery session: transcript line at 16:34:05.496, ledger record at 16:34:05.566). The
+hook therefore always counts that turn, and **`goalAgeTurns` is never 0 at a Read**; the
+replay counts it the same way.
+
+**Who wrote the goal.** `[ACTUAL]`, 457 reads with a goal of at least 12 characters:
+
+| the message the goal came from | reads | share |
+|---|---:|---:|
+| typed by the user | 393 | 86.0% |
+| a skill body injected by the harness (`Base directory for this skill: …`) | **40** | 8.8% |
+| a task notification from a subagent | **21** | 4.6% |
+| an image attachment | 3 | 0.7% |
+| **written by the system, total** | **64** | **14.0%** |
+
+On the subset whose file would pass the size gates today — 145 reads of files that still
+exist, at or over 400 lines and under 80.000 bytes — the share is **5 of 145 (3.4%)**, all
+five skill bodies. The other 59 sat on files the hook would have refused for size, so the
+14% is the rate at which the *goal* is wrong and the 3.4% is the rate at which the hook
+would have *acted* on it, on this machine's history.
+
+A skill body deserves its own line. It begins with an absolute path — which carries the
+username — followed by the skill's prose, and the first 600 characters of that would have
+gone to TypeSafe as "the last thing you typed". The README's statement of what leaves the
+machine is wrong for these 40 reads, and the scrub does not remove a username.
+
+**How old the goal was.** `[ACTUAL]`, assistant turns between the user's message and the
+Read, all 457:
+
+| | p50 | p90 | p99 | max |
+|---|---:|---:|---:|---:|
+| all reads | 2 | 32 | 91 | 147 |
+| files that pass the size gates today | 2 | 6 | — | 13 |
+
+Histogram, all reads: 1–5 turns **300** · 6–20 **96** · 21–50 **31** · over 50 **30**.
+The median read happens two turns after the user spoke; one read in ten happens more than
+thirty turns later, in a session that has long moved on. On the eligible subset the tail
+is shorter, at a maximum of 13.
+
+**What now exists that did not.** The ledger records `goalSource` beside `goalAgeTurns`,
+so the same two distributions accumulate on every machine squint runs on, not only this
+one. **Nothing branches on either field.** What the data would support, stated so the
+decision can be made rather than implied: refusing a `system` goal is not a threshold but
+a label — a skill body or a task notification is never the user's request, by
+construction — and on this history it would have cost 64 of 457 opportunities and 5 of
+145 eligible ones. A cut-off on age is a threshold, and the distribution above is the
+first one anybody could set it against.
+
+**What is still not measured.** Whether a system-written goal produces a *wrong* window as
+reliably as a stale one does in §6. It is a goal about something else by construction, so
+the expectation is yes, and the expectation has not been tested.
+
+---
+
+## 6-quater. The second audit: a ceiling, a graft, and three more orderings
+
+Date: 2026-09-21, after the beta commit. The three open items of
+[`optimizations.md`](optimizations.md) judged worth doing, plus a second pass of review
+over code the previous pass had already read.
+
+### O11 — a ceiling on calls per session. Done.
+
+`narrow.maxCallsPerSession`, default **50**, checked immediately before the call — after
+every free gate, so that a `budget-spent` line in the ledger means exactly one thing:
+this Read would otherwise have paid. Counting earlier would have turned a `file-too-small`
+into a `budget-spent` and lost the reason. Only calls that answered are counted: a refusal
+carries no `inputTokens` and a timeout never learned its cost.
+
+The distribution the cap was to be chosen against exists in the published data.
+`[ACTUAL]` Across **75 sessions** with the hook on — 50 in the battery, 15 on opus, 10 in
+the adversarial pass — the maximum number of calls in one session is **1**. Fifty is
+therefore a bound on a runaway, not a tuned value: `[ESTIMATED]` at the ceiling a session
+has spent at most 50 × 21.932 = 1.096.600 input tokens, about $0.046 on the largest file
+measured. Five tests pin the semantics, including that refusals do not count and that the
+count is per session, not per project.
+
+### O8 — the textual graft. Done.
+
+The scanner, `graftHookGroup`, `graftRemoveGroup` and `verifiedGraft` ported from the JEF
+installer into `install.ts` (+230 lines), with the hand-written fixtures that were written
+for them: inline arrays, inline objects, arbitrary key order, another hook already
+present, two spaces, four spaces, a tab, LF, CRLF, with and without a final newline.
+**Every combination round-trips byte for byte**, and every line the install did not add
+survives the *install* verbatim, not only the uninstall. The fallback is unchanged and
+still speaks: a file with duplicate keys — where `JSON.parse` keeps the last and a
+textual scan finds the first — fails verification and is reported `installed-reformatted`.
+
+### Three more orderings, found in review
+
+1. **A chunk count was answered after the transcript was paid for.** The "fewer than two
+   chunks" refusal needs only the file, and sat after the transcript read. Moved before
+   it. Unreachable with the default config (400 lines is at least 40 chunks), so this is
+   the ladder's principle kept rather than a measured cost.
+2. **The installer treated every read failure as "the file is missing".** A directory at
+   the settings path, or a permission denied, fell into the create-from-scratch branch and
+   went on to write. Only `ENOENT` may do that now; anything else is `corrupt`, which is
+   the rule the same function already applied to unparseable JSON — what was not read is
+   not overwritten. Tested with a directory at the path.
+3. **`squint off` replaced a `.squint.json` it could not parse.** The parse failed, the
+   config started from `{}`, and the user's file — a trailing comma away from valid — was
+   overwritten with `{"narrow":{"enabled":false}}` without a word. It is now left alone
+   and reported `corrupt` with exit 1, the installer's own rule applied to the config file.
+
+Two things were reviewed and left as they are. `squint install` copies the `/squint`
+skill even when the settings file is corrupt; the copy is idempotent and the exit code
+already says the install failed. And a message made only of a `<local-command-stdout>`
+wrapper resets the goal to empty rather than keeping the previous typed one — that
+discards a goal, which is the safe direction, and keeping it would aim at something older.
+
+`npm test`: **108 tests**, from 85.
 
 ---
 
@@ -804,7 +999,13 @@ for, and it is the cost side of it.
   say, because every session in it has one user turn.
 - **How often the goal is a message you never wrote.** Zero times in 23 real
   opportunities (§6-bis), which at that n bounds it near 12% rather than establishing it
-  is rare.
+  is rare. `[CORRECTED 2026-09-21]` Now measured: **64 of 457** real reads, 14.0%, and
+  5 of 145 on files the hook would act on (§6-ter). What remains unmeasured is whether
+  those goals produce a wrong window as reliably as a stale one does.
+- **Whether the 400-line floor should move.** The band below it is now measured
+  (§2-bis: 37/37, smaller pick errors than above) and its cost curve was already known.
+  What is not measured is whether users accept ~350 ms on every read of a 200-line file
+  for a 25% saving on it. The floor is unchanged.
 - **Small n where it is smallest.** Nineteen fired pairs carry the headline. Four pairs
   carry the oversize control. Eight carry the open-ended rate. The paired design separates
   signal from noise at these sizes; it does not characterise a tail.

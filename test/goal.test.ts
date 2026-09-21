@@ -64,7 +64,7 @@ describe('lastUserMessage — the text', () => {
 
   it('returns an empty goal for a missing transcript, and an empty goal means pass through', () => {
     const g = lastUserMessage(join(dir, 'does-not-exist.jsonl'));
-    assert.deepEqual(g, { text: '', ageTurns: 0 });
+    assert.deepEqual(g, { text: '', ageTurns: 0, source: 'user' });
   });
 
   it('survives a corrupt line instead of throwing', () => {
@@ -115,5 +115,43 @@ describe('lastUserMessage — how stale the goal is', () => {
     assert.equal(g.ageTurns, 20);
     // Nothing branches on this yet. The test pins the measurement, not a policy.
     assert.equal(g.text, 'find the parser');
+  });
+});
+
+describe('lastUserMessage — who wrote the goal', () => {
+  // `[ACTUAL 2026-09-21]` Every shape below was seen in a real transcript on the
+  // development machine. Each is labelled, never dropped: the ledger gets the
+  // distribution first, and only a distribution can justify a rule.
+  const meta = (text: string): unknown => ({ type: 'user', isMeta: true, message: { content: text } });
+
+  it('is `user` for a message the person typed', () => {
+    assert.equal(lastUserMessage(transcript([user('find the parser')])).source, 'user');
+  });
+
+  it('is `system` for a skill body injected with isMeta', () => {
+    const g = lastUserMessage(transcript([user('find the parser'), meta('Base directory for this skill: C:/x\n\n# Debug Skill\n...')]));
+    assert.equal(g.source, 'system');
+    assert.match(g.text, /^Base directory/, 'the text is still taken - this is a label, not a filter');
+  });
+
+  it('is `system` for a compaction summary', () => {
+    const summary = { type: 'user', isCompactSummary: true, isVisibleInTranscriptOnly: true, message: { content: 'This session is being continued from a previous conversation that ran out of context. Summary: ...' } };
+    assert.equal(lastUserMessage(transcript([user('find the parser'), assistant(), summary])).source, 'system');
+  });
+
+  it('is `system` for a task notification, which carries no flag at all', () => {
+    const g = lastUserMessage(transcript([user('find the parser'), userBlocks({ type: 'text', text: '<task-notification>agent done</task-notification>' })]));
+    assert.equal(g.source, 'system');
+  });
+
+  it('goes back to `user` as soon as the person speaks again', () => {
+    const g = lastUserMessage(transcript([meta('Base directory for this skill: C:/x'), assistant(), user('now the formatter')]));
+    assert.equal(g.source, 'user');
+    assert.equal(g.text, 'now the formatter');
+  });
+
+  it('a tool_result does not change the source, because it did not supply the text', () => {
+    const g = lastUserMessage(transcript([meta('Base directory for this skill: C:/x'), assistant(), userBlocks({ type: 'tool_result', content: 'x' })]));
+    assert.equal(g.source, 'system');
   });
 });

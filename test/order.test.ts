@@ -25,6 +25,7 @@ import { after, describe, it } from 'node:test';
 
 import { main } from '../src/hook.js';
 import { canonicalDir, projectRootFrom } from '../src/cli.js';
+import { appendRecord, countCalls } from '../src/ledger.js';
 import { preflightNoFile, preflightSize } from '../src/policy.js';
 import { DEFAULT_CONFIG, type NarrowRecord } from '../src/types.js';
 
@@ -72,6 +73,57 @@ describe('the hook decides before it reads', () => {
     });
     assert.equal(written?.totalLines, 0);
     assert.equal(written?.goalAgeTurns, undefined, 'the transcript must not have been parsed either');
+  });
+});
+
+describe('the ceiling on calls per session', () => {
+  // A file the hook would call on, a transcript with a goal, no key: the Read stops at
+  // `unavailable` (the call was due, nothing answered) - or at `budget-spent` before
+  // the call is even attempted. Which of the two says whether the ceiling worked.
+  const root = mkdtempSync(join(tmpdir(), 'squint-budget-'));
+  after(() => rmSync(root, { recursive: true, force: true }));
+  const big = join(root, 'big.ts');
+  writeFileSync(big, Array.from({ length: 600 }, (_, i) => `const line${i} = ${i};`).join('\n'), 'utf8');
+  const transcript = join(root, 't.jsonl');
+  writeFileSync(transcript, JSON.stringify({ type: 'user', message: { content: 'find where the parser is built' } }) + '\n', 'utf8');
+  const paid: NarrowRecord = { timestamp: 't', sessionId: 'budget', path: 'big.ts', totalLines: 600, narrowed: true, inputTokens: 100 };
+  const refused: NarrowRecord = { timestamp: 't', sessionId: 'budget', path: 'big.ts', totalLines: 600, narrowed: false, reason: 'low-confidence' };
+
+  const reasonWith = async (config: string, ledgerRows: NarrowRecord[]): Promise<string | undefined> => {
+    rmSync(join(root, '.squint'), { recursive: true, force: true });
+    writeFileSync(join(root, '.squint.json'), config, 'utf8');
+    for (const r of ledgerRows) appendRecord(root, r);
+    let written: NarrowRecord | undefined;
+    await main({
+      raw: JSON.stringify({ tool_name: 'Read', session_id: 'budget', transcript_path: transcript, tool_input: { file_path: big } }),
+      env: {}, projectRoot: root, stdout: () => undefined, stderr: () => undefined,
+      append: (_r, rec) => void (written = rec),
+    });
+    return written?.reason;
+  };
+
+  it('lets the call through while the session is under the ceiling', async () => {
+    assert.equal(await reasonWith('{"narrow":{"maxCallsPerSession":2}}', [paid]), 'unavailable');
+  });
+
+  it('refuses, and RECORDS the refusal, once the ceiling is reached', async () => {
+    assert.equal(await reasonWith('{"narrow":{"maxCallsPerSession":2}}', [paid, paid]), 'budget-spent');
+  });
+
+  it('counts only calls that were paid for: refusals are not spending', async () => {
+    assert.equal(await reasonWith('{"narrow":{"maxCallsPerSession":2}}', [paid, refused, refused, refused]), 'unavailable');
+  });
+
+  it('counts per session, not per project', async () => {
+    const other = { ...paid, sessionId: 'someone-else' };
+    assert.equal(await reasonWith('{"narrow":{"maxCallsPerSession":1}}', [other, other]), 'unavailable');
+  });
+
+  it('the default ceiling is far above anything a real session has done', () => {
+    // [ACTUAL] 75 sessions with the hook on, maximum 1 call. The default is a bound on
+    // a runaway, not a tuned threshold - see types.ts.
+    assert.ok(DEFAULT_CONFIG.maxCallsPerSession >= 20);
+    assert.equal(countCalls(root, 'no-such-session'), 0, 'no ledger means no calls, never an error');
   });
 });
 

@@ -54,6 +54,7 @@ export function normalize(raw: unknown): LoadedConfig {
       // A non-positive timeout would turn fail-open into always-open: an already
       // elapsed budget aborts before the request ever leaves.
       timeoutMs: count(n['timeoutMs'], DEFAULT_CONFIG.timeoutMs),
+      maxCallsPerSession: count(n['maxCallsPerSession'], DEFAULT_CONFIG.maxCallsPerSession),
     },
     jev: {
       model: str(j['model'], DEFAULT_JEV.model),

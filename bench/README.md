@@ -25,6 +25,8 @@ It is here so the measurements can be re-run rather than believed.
 | `stale-goal.mjs` | the failure the battery is blind to: aim the window at an *old* goal and see what it hides. Jev only, cents. |
 | `compare-models.mjs` | lo stesso disegno su due modelli, affiancati, col controllo negativo di ciascuno. |
 | `calibrate.mjs` | at what confidence does the window stop containing the answer? No Claude sessions — only Jev calls, so it costs cents. |
+| `targets-small.mjs` | i 37 bersagli della fascia 150-400 righe, scritti a mano il 2026-09-21: si passano a `calibrate.mjs` come quarto argomento, cosi' l'harness resta uno solo. |
+| `goal-source.mjs` | chi ha scritto il goal e quanto era vecchio, a ogni Read reale sulla macchina: replay offline di tutti i transcript con lo stesso fold del hook. Nessuna chiamata, nessun dato personale in uscita. |
 | `charts.mjs` | regenerates the three SVGs in `docs/img` from the raw data. |
 
 ## The design, and why it is shaped this way
@@ -73,7 +75,8 @@ node bench/table.mjs <out.jsonl> [--md]
 node bench/report.mjs <out.jsonl>
 node bench/adversarial.mjs <workspace> <adversarial.jsonl> [nCases]
 node bench/adversarial-report.mjs <adversarial.jsonl> [battery.jsonl]
-node bench/calibrate.mjs <srcDir> <calibration.json>
+node bench/calibrate.mjs <srcDir> <calibration.json> [targets.mjs]   # es. bench/targets-small.mjs
+node bench/goal-source.mjs [out.json]
 node bench/charts.mjs <battery.jsonl> <calibration.json> <outDir>
 node bench/guessability.mjs <workspace> <out.jsonl> [nCases]
 node bench/stale-goal.mjs <srcDir> <out.json>

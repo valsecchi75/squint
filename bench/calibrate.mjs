@@ -30,6 +30,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const SRC = process.argv[2];   // la directory dei sorgenti su cui tarare
 const OUT = process.argv[3];   // dove scrivere il JSON dei risultati
+// Opzionale: un modulo che esporta `TARGETS` al posto della lista qui sotto. Serve per
+// estendere la taratura a un'altra fascia di file (targets-small.mjs: 150-400 righe)
+// SENZA una seconda copia di questo harness, che potrebbe divergere dalla prima.
+const TARGETS_MODULE = process.argv[4];
 // I moduli di squint stesso, non quelli di un altro progetto: questa taratura deve
 // poter girare da un clone del pacchetto. La versione precedente importava da
 // `<repo>/.jef/dist`, una directory che nel repository pubblicato non esiste.
@@ -47,7 +51,7 @@ const { loadConfig } = await mod('config.js');
 const { narrow, jev } = loadConfig(process.cwd());
 
 /** (file, riga vera, obiettivo). Scritti leggendo il codice, mai chiesti a un modello. */
-const TARGETS = [
+const TARGETS = TARGETS_MODULE ? (await import(pathToFileURL(join(process.cwd(), TARGETS_MODULE)).href)).TARGETS : [
   ['report.ts', 388, 'calcolare un percentile scegliendo un valore osservato invece di interpolare fra due'],
   ['report.ts', 420, 'raccogliere le latenze dai record e costruirne le statistiche'],
   ['report.ts', 614, 'confrontare il modello deciso dal routing con quello che ha davvero eseguito'],

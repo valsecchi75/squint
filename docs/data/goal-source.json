@@ -1,0 +1,50 @@
+{
+  "measuredOn": "2026-09-21",
+  "transcripts": 381,
+  "readsWithoutWindow": 458,
+  "ofWhichGoalUsable": 457,
+  "ofWhichFileEligibleToday": 145,
+  "bySource": {
+    "all": {
+      "user": 393,
+      "system": 64
+    },
+    "eligibleToday": {
+      "user": 140,
+      "system": 5
+    }
+  },
+  "byCategory": {
+    "all": {
+      "user": 393,
+      "skill-body": 40,
+      "task-notification": 21,
+      "image": 3
+    },
+    "eligibleToday": {
+      "user": 140,
+      "skill-body": 5
+    }
+  },
+  "ageTurns": {
+    "all": {
+      "p50": 2,
+      "p90": 32,
+      "p99": 91,
+      "max": 147
+    },
+    "eligibleToday": {
+      "p50": 2,
+      "p90": 6,
+      "p99": 13,
+      "max": 13
+    },
+    "histogram": {
+      "1-5": 300,
+      "6-20": 96,
+      "21-50": 31,
+      ">50": 30
+    }
+  },
+  "emptyAfterCut": 1
+}

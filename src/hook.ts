@@ -20,7 +20,7 @@ import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { loadConfig } from './config.js';
-import { appendRecord, isExcludedPath, scrub, shortPath } from './ledger.js';
+import { appendRecord, countCalls, isExcludedPath, scrub, shortPath } from './ledger.js';
 import { askJev } from './jev.js';
 import {
   buildChunks,
@@ -85,71 +85,101 @@ export interface Goal {
    * a number (ERR-028). See docs/evidence.md section 6.
    */
   ageTurns: number;
+  /**
+   * Whether the message that supplied `text` was typed by the person or written by the
+   * harness under the `user` role. RECORDED, NOT ACTED ON - see `NarrowRecord.goalSource`.
+   */
+  source: 'user' | 'system';
+}
+
+/** The fold over a transcript, one entry at a time, so a replay can stop at any line. */
+export interface GoalState {
+  last: string;
+  /** Assistant turns seen since `last` was set. */
+  since: number;
+  system: boolean;
+}
+
+export const emptyGoalState = (): GoalState => ({ last: '', since: 0, system: false });
+
+/**
+ * Messages the harness writes under the `user` role. The two flags are Claude Code's
+ * own labels (a compaction summary, an injected skill body, a note relayed from another
+ * session, a caveat). The two prefixes are shapes seen in real transcripts that carry no
+ * flag at all. The list is a detector for the ledger, not a filter: nothing is dropped
+ * because of it.
+ */
+const SYSTEM_PREFIXES = ['<task-notification>', '[Request interrupted'];
+
+/**
+ * Feeds one parsed transcript entry into the fold.
+ *
+ * Tool results and the agent's own turns are skipped when looking for the text: they
+ * say what it has been doing, not what it was asked for. Assistant turns are counted,
+ * though - that count IS the staleness. The count resets every time the user speaks
+ * again, because a fresh instruction is a fresh goal however long the agent worked
+ * before it.
+ */
+export function foldGoal(state: GoalState, entry: unknown): void {
+  const o = entry as { type?: unknown; isMeta?: unknown; isCompactSummary?: unknown; message?: { content?: unknown } };
+  if (o?.type === 'assistant') {
+    state.since += 1;
+    return;
+  }
+  if (o?.type !== 'user') return;
+  const content = o.message?.content;
+  let text = '';
+  if (typeof content === 'string') {
+    text = content.trim();
+  } else if (Array.isArray(content)) {
+    const parts: string[] = [];
+    for (const raw of content) {
+      const m = raw as { type?: unknown; text?: unknown };
+      if (m?.type !== 'text' || typeof m.text !== 'string') continue; // a tool_result is not the user
+      parts.push(m.text);
+    }
+    text = parts.join(' ').trim();
+  }
+  if (text === '') return;
+  state.last = text;
+  state.since = 0;
+  state.system = o.isMeta === true || o.isCompactSummary === true || SYSTEM_PREFIXES.some((p) => text.startsWith(p));
 }
 
 /**
- * The last thing the USER actually typed, and how many assistant turns ago.
- *
- * Tool results and the agent's own turns are skipped when looking for the text: they
- * say what it has been doing, not what it was asked for. They are counted, though -
- * that count IS the staleness.
- *
  * The markers are cut because a system reminder or a slash-command wrapper is noise
  * around the real request. A marker at position zero leaves an empty string, and an
  * empty goal makes the caller pass the Read through - which is the right outcome.
  */
-export function lastUserMessage(transcriptPath: string, maxChars = 600): Goal {
-  const none: Goal = { text: '', ageTurns: 0 };
-  if (transcriptPath === '' || !existsSync(transcriptPath)) return none;
-  let raw: string;
-  try {
-    raw = readFileSync(transcriptPath, 'utf8');
-  } catch {
-    return none;
-  }
-  let last = '';
-  // Assistant turns seen since `last` was set. Reset every time the user speaks again,
-  // because a fresh instruction is a fresh goal however long the agent worked before it.
-  let since = 0;
-  for (const line of raw.split('\n')) {
-    if (line.trim() === '') continue;
-    let o: { type?: unknown; message?: { content?: unknown } };
-    try {
-      o = JSON.parse(line) as typeof o;
-    } catch {
-      continue;
-    }
-    if (o.type === 'assistant') {
-      since += 1;
-      continue;
-    }
-    if (o.type !== 'user') continue;
-    const content = o.message?.content;
-    if (typeof content === 'string') {
-      if (content.trim() !== '') {
-        last = content.trim();
-        since = 0;
-      }
-    } else if (Array.isArray(content)) {
-      const parts: string[] = [];
-      for (const raw2 of content) {
-        const m = raw2 as { type?: unknown; text?: unknown };
-        if (m?.type !== 'text' || typeof m.text !== 'string') continue; // a tool_result is not the user
-        parts.push(m.text);
-      }
-      const joined = parts.join(' ').trim();
-      if (joined !== '') {
-        last = joined;
-        since = 0;
-      }
-    }
-  }
+export function finishGoal(state: GoalState, maxChars = 600): Goal {
+  let last = state.last;
   for (const marker of ['<system-reminder>', '<command-name>', '<local-command-stdout>', '<ide_opened_file>']) {
     const i = last.indexOf(marker);
     if (i >= 0) last = last.slice(0, i);
   }
   last = last.trim();
-  return { text: last.length > maxChars ? last.slice(0, maxChars) : last, ageTurns: since };
+  return { text: last.length > maxChars ? last.slice(0, maxChars) : last, ageTurns: state.since, source: state.system ? 'system' : 'user' };
+}
+
+/** The last thing the USER actually typed, how many assistant turns ago, and who wrote it. */
+export function lastUserMessage(transcriptPath: string, maxChars = 600): Goal {
+  const state = emptyGoalState();
+  if (transcriptPath === '' || !existsSync(transcriptPath)) return finishGoal(state, maxChars);
+  let raw: string;
+  try {
+    raw = readFileSync(transcriptPath, 'utf8');
+  } catch {
+    return finishGoal(state, maxChars);
+  }
+  for (const line of raw.split('\n')) {
+    if (line.trim() === '') continue;
+    try {
+      foldGoal(state, JSON.parse(line));
+    } catch {
+      continue;
+    }
+  }
+  return finishGoal(state, maxChars);
 }
 
 type Fields = Omit<NarrowRecord, 'timestamp' | 'sessionId' | 'path' | 'totalLines'>;
@@ -248,20 +278,33 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
       );
     }
 
+    // Still the file alone: a chunk count needs nothing the transcript has, so it is
+    // answered before the transcript is paid for.
+    const { chunks, criteria } = buildChunks(lines, narrow);
+    if (Object.keys(criteria).length < 2) {
+      return pass('file-too-small', 'fewer than two chunks to choose between', () =>
+        append(projectRoot, record(sessionId, shown, lines.length, { reason: 'file-too-small' })),
+      );
+    }
+
     // STAGE 4 - the transcript last, because it is the most expensive read of the four:
     // 29 ms on an 8.2 MB session (measured 2026-09-21), and worth nothing on a Read that
     // was never going to be narrowed.
     const goal = lastUserMessage(transcript);
+    const aim = { goalAgeTurns: goal.ageTurns, goalSource: goal.source };
     if (goal.text.trim().length < narrow.minGoalChars) {
       return pass('no-goal', `goal is ${goal.text.trim().length} chars, under ${narrow.minGoalChars}`, () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'no-goal' })),
+        append(projectRoot, record(sessionId, shown, lines.length, { ...aim, reason: 'no-goal' })),
       );
     }
 
-    const { chunks, criteria } = buildChunks(lines, narrow);
-    if (Object.keys(criteria).length < 2) {
-      return pass('file-too-small', 'fewer than two chunks to choose between', () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'file-too-small' })),
+    // The ceiling, checked last of all the free gates so that `budget-spent` means
+    // exactly one thing: this Read would have made a call. Counting it earlier would
+    // turn a `file-too-small` or `no-goal` into a `budget-spent` and lose the reason.
+    const calls = countCalls(projectRoot, sessionId);
+    if (calls >= narrow.maxCallsPerSession) {
+      return pass('budget-spent', `${calls} calls this session, at the ${narrow.maxCallsPerSession} ceiling`, () =>
+        append(projectRoot, record(sessionId, shown, lines.length, { ...aim, reason: 'budget-spent' })),
       );
     }
 
@@ -278,7 +321,7 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
     const res = await askJev(state, buildQuestions(criteria), jev, narrow.timeoutMs, env);
     if (res.status !== 'ok') {
       return pass('unavailable', res.reason, () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'unavailable', elapsedMs: res.elapsedMs })),
+        append(projectRoot, record(sessionId, shown, lines.length, { ...aim, reason: 'unavailable', elapsedMs: res.elapsedMs })),
       );
     }
 
@@ -289,12 +332,12 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
 
     if (where === undefined || chosen === undefined) {
       return pass('no-chunk-chosen', 'no chunk stood out', () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns, reason: 'no-chunk-chosen', ...spent })),
+        append(projectRoot, record(sessionId, shown, lines.length, { ...aim, reason: 'no-chunk-chosen', ...spent })),
       );
     }
     if (!confidenceAccepted(where.confidence, narrow)) {
       return pass('low-confidence', `${where.confidence.toFixed(2)} is under the ${narrow.minConfidence} floor`, () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns,
+        append(projectRoot, record(sessionId, shown, lines.length, { ...aim,
           reason: 'low-confidence', confidence: where.confidence, pickedLine: chosen.startLine, ...spent,
         })),
       );
@@ -302,7 +345,7 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
     const w = windowFor(chosen.startLine, lines.length, narrow);
     if (w === null) {
       return pass('window-covers-file', 'the window would cover the whole file', () =>
-        append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns,
+        append(projectRoot, record(sessionId, shown, lines.length, { ...aim,
           reason: 'window-covers-file', confidence: where.confidence, pickedLine: chosen.startLine, ...spent,
         })),
       );
@@ -317,7 +360,7 @@ export async function main(deps: HookDeps = {}): Promise<HookOutput> {
     };
 
     try {
-      append(projectRoot, record(sessionId, shown, lines.length, { goalAgeTurns: goal.ageTurns,
+      append(projectRoot, record(sessionId, shown, lines.length, { ...aim,
         narrowed: true,
         offset: w.offset,
         limit: w.limit,

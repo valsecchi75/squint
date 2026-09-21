@@ -58,6 +58,7 @@ export type PassReason =
   | 'low-confidence'
   | 'no-chunk-chosen'
   | 'window-covers-file'
+  | 'budget-spent'
   | 'unavailable';
 
 export type Preflight =

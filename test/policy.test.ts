@@ -33,6 +33,7 @@ const CONFIG: NarrowConfig = {
   chunkLines: 10,
   minGoalChars: 12,
   timeoutMs: 6000,
+  maxCallsPerSession: 50,
 };
 
 const OK: PreflightInput = {

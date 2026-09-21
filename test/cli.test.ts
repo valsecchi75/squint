@@ -147,8 +147,26 @@ describe('on / off', () => {
   it('creates the file when there is none', () => {
     const dir = mkdtempSync(join(tmpdir(), 'squint-flag2-'));
     try {
-      setEnabled(dir, true);
+      assert.equal(setEnabled(dir, true).written, true);
       assert.match(readFileSync(join(dir, '.squint.json'), 'utf8'), /"enabled": true/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves a file it cannot parse alone, and says so, instead of replacing it', async () => {
+    // The old code parsed, failed, started from `{}` and wrote that over the user's
+    // file - the installer's own rule ("what was not read is not overwritten") applied
+    // to the settings file and not to the config file.
+    const dir = mkdtempSync(join(tmpdir(), 'squint-flag3-'));
+    try {
+      const broken = '{ "narrow": { "minLines": 900, }\n'; // trailing comma: the typo people make
+      writeFileSync(join(dir, '.squint.json'), broken, 'utf8');
+      assert.equal(setEnabled(dir, false).written, false);
+      assert.equal(readFileSync(join(dir, '.squint.json'), 'utf8'), broken, 'the bytes must be untouched');
+      const r = await run(['off'], deps({ cwd: dir, env: { CLAUDE_PROJECT_DIR: dir } }));
+      assert.equal(r.code, 1);
+      assert.match(r.text, /corrupt/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

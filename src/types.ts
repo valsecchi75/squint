@@ -62,6 +62,21 @@ export interface NarrowConfig {
    * landing 80 ms short of failing. 6.000 ms is twice the largest observed success.
    */
   timeoutMs: number;
+
+  /**
+   * How many Jev calls one session may pay for. Past it, every Read that WOULD have
+   * made a call is passed through with reason `budget-spent`, recorded like any other
+   * refusal - never silently.
+   *
+   * This bounds the bad case, it does not improve the good one. `[ACTUAL]` Across 75
+   * sessions with the hook on (battery, opus re-run, adversarial pass) no session made
+   * more than ONE call, so nothing normal ever meets this ceiling. What it stops is a
+   * loop or an agent walking a tree of large files, where the old worst case was
+   * unbounded. 50 is a bound past that observed maximum, not a tuned threshold:
+   * `[ESTIMATED]` at the ceiling a session has spent at most 50 x 21.932 = 1.096.600
+   * input tokens, or about $0.046 at the published rate on the largest file measured.
+   */
+  maxCallsPerSession: number;
 }
 
 export const DEFAULT_CONFIG: NarrowConfig = {
@@ -75,6 +90,7 @@ export const DEFAULT_CONFIG: NarrowConfig = {
   chunkLines: 10,
   minGoalChars: 12,
   timeoutMs: 6_000,
+  maxCallsPerSession: 50,
 };
 
 /** Where to reach Jev. The key is read from the environment and never from a file. */
@@ -168,4 +184,14 @@ export interface NarrowRecord {
    * and a threshold without one is a guess wearing a number.
    */
   goalAgeTurns?: number;
+  /**
+   * Who wrote the message the goal was taken from. `user` is the person typing;
+   * `system` is a message that arrived with the `user` role but was written by the
+   * harness - a compaction summary, a skill body, a note relayed from another session,
+   * a task notification. Any of those would be aimed at as though it were a request,
+   * which is the stale-goal failure with a detectable trigger.
+   *
+   * RECORDED, NOT ACTED ON, for the same reason as `goalAgeTurns`.
+   */
+  goalSource?: 'user' | 'system';
 }
