@@ -97,6 +97,34 @@ describe('renderReport — what it must not say', () => {
   });
 });
 
+describe('renderReport — one row per session, so the last task can be read off the total', () => {
+  const older = rec({ sessionId: 'aaaaaaaa-1', timestamp: '2026-09-20T10:00:00.000Z', narrowed: true, linesAvoided: 500, inputTokens: 100 });
+  const newer1 = rec({ sessionId: 'bbbbbbbb-2', timestamp: '2026-09-21T08:00:00.000Z', reason: 'unavailable' });
+  const newer2 = rec({ sessionId: 'bbbbbbbb-2', timestamp: '2026-09-21T08:05:00.000Z', narrowed: true, linesAvoided: 300, inputTokens: 200 });
+
+  it('sums each session separately and orders them most recent first', () => {
+    const s = summarise([older, newer1, newer2], 2);
+    assert.equal(s.perSession.length, 2);
+    assert.equal(s.perSession[0]?.sessionId, 'bbbbbbbb-2', 'the newest session comes first');
+    assert.deepEqual(s.perSession[0], { sessionId: 'bbbbbbbb-2', last: '2026-09-21T08:05:00.000Z', looked: 2, narrowed: 1, linesAvoided: 300, calls: 1, inputTokens: 200, unavailable: 1 });
+    assert.equal(s.perSession[1]?.calls, 1);
+    // The total is the sum of the column, nothing else.
+    assert.equal(s.linesAvoided, s.perSession.reduce((n, r) => n + r.linesAvoided, 0));
+    assert.equal(s.inputTokens, s.perSession.reduce((n, r) => n + r.inputTokens, 0));
+  });
+
+  it('prints the table with the newest session on top, and skips it for a single session', () => {
+    const text = renderReport(summarise([older, newer1, newer2], 2), 'C:/p');
+    assert.match(text, /by session, most recent first/);
+    const lines = text.split('\n');
+    const first = lines.findIndex((l) => l.includes('bbbbbbbb'));
+    const second = lines.findIndex((l) => l.includes('aaaaaaaa'));
+    assert.ok(first > 0 && second > first);
+    assert.match(lines[first] ?? '', /2026-09-21 08:05/);
+    assert.ok(!renderReport(summarise([older], 1), 'C:/p').includes('by session'), 'one session needs no breakdown: the total IS the session');
+  });
+});
+
 describe('doctor', () => {
   it('reports the key as missing without ever printing it', () => {
     const checks = doctorChecks({}, 'win32', 'C:/tools/squint', 'C:/x/settings.json');

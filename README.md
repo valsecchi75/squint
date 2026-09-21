@@ -9,7 +9,7 @@
 [![cost](https://img.shields.io/badge/cost%20on%20those%20reads-−37%25-3fb950)](#1-does-it-save-anything)
 [![recall](https://img.shields.io/badge/target%20inside%20the%20window-19%20of%2019-3fb950)](#2-does-it-hide-code)
 [![runs](https://img.shields.io/badge/measured%20on-184%20paired%20runs-3fb950)](#the-evidence)
-[![tests](https://img.shields.io/badge/tests-108%20passing-3fb950)](#develop)
+[![tests](https://img.shields.io/badge/tests-110%20passing-3fb950)](#develop)
 [![node](https://img.shields.io/badge/node-%E2%89%A520-blue)](#install)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -202,7 +202,18 @@ squint · report · /home/you/projects/api
        1  low-confidence
 ```
 
-That is a real report from a real session, and it is worth reading twice. **One read, no
+Once a project has more than one session the report adds one row per session, most recent
+first, with the same columns plus the calls that came back `unavailable` — so the task you
+just finished is the top line and the totals above are the sum of the column:
+
+```
+  by session, most recent first
+    when (UTC)        session   looked  narrowed   lines not read   Jev calls   Jev tokens   unavailable
+    2026-09-21 08:05  bbbbbbbb       2         1              300           1          200             1
+    2026-09-20 10:00  aaaaaaaa       1         1              500           1          100             0
+```
+
+The one above is a real report from a real session, and it is worth reading twice. **One read, no
 narrowing, and 21,944 tokens spent on the decision anyway.** The hook asked, the model was
 not sure enough, and it left the file alone — the safe outcome, and not a free one. The
 report says so rather than showing you a saving you did not get.
@@ -727,7 +738,7 @@ these defaults.
 
 ```bash
 npm run typecheck     # tsc --noEmit
-npm test              # build, then node --test  (108 tests)
+npm test              # build, then node --test  (110 tests)
 npm run build
 ```
 
@@ -755,7 +766,8 @@ motivated it, never without.
 
 | version | date | what changed | tests |
 |---|---|---|---:|
-| **0.1.0-beta.2** | 2026-09-21 | A ceiling on Jev calls per session (`maxCallsPerSession`, 50, refusal `budget-spent`). The installer splices its entry into `settings.json` byte for byte and verifies the splice. The band below the 400-line floor calibrated: 37/37 targets inside the window ([§2-bis](docs/evidence.md)). The ledger records who wrote the goal: measured on 477 real reads, 13% of goals were written by the harness, not the user ([§6-ter](docs/evidence.md)). Three ordering defects fixed. Same day, two live tests of the two decisions this left open: a system-written goal does not fool the confidence floor, 1 narrowing in 45 ([§6-quinquies](docs/evidence.md)); the floor at 200 lines in real sessions is null at n = 10 ([§2-ter](docs/evidence.md)). | 108 |
+| **0.1.0-beta.3** | 2026-09-21 | `squint report` adds one row per session, most recent first, with looked / narrowed / lines not read / Jev calls / Jev tokens / unavailable, so the task just finished can be read off the totals. `install.bat`: one-file Windows install that asks for the key instead of carrying it. | 110 |
+| 0.1.0-beta.2 | 2026-09-21 | A ceiling on Jev calls per session (`maxCallsPerSession`, 50, refusal `budget-spent`). The installer splices its entry into `settings.json` byte for byte and verifies the splice. The band below the 400-line floor calibrated: 37/37 targets inside the window ([§2-bis](docs/evidence.md)). The ledger records who wrote the goal: measured on 477 real reads, 13% of goals were written by the harness, not the user ([§6-ter](docs/evidence.md)). Three ordering defects fixed. Same day, two live tests of the two decisions this left open: a system-written goal does not fool the confidence floor, 1 narrowing in 45 ([§6-quinquies](docs/evidence.md)); the floor at 200 lines in real sessions is null at n = 10 ([§2-ter](docs/evidence.md)). | 108 |
 | 0.1.0-beta.1 | 2026-09-21 | Beta. The hook decides before it reads: an excluded path is never opened (43 → 45 ms on a 40 MB file, was 89). `squint off` writes where the hook reads. The goal's age recorded in the ledger. | 85 |
 | 0.1.0-alpha | 2026-09-20 | The hook, the ledger, the installer, `/squint`, and the evidence: 184 paired runs, −47% new tokens and −37% cost on the reads it fires on, the placebo and stale-goal controls. | 61 |
 

@@ -80,6 +80,21 @@ export function projectRootFrom(cwd: string, env: NodeJS.ProcessEnv): string {
 
 // --- reading the ledger --------------------------------------------------------
 
+/** One session's share of the same numbers, so the last task can be read off the total. */
+export interface SessionRow {
+  sessionId: string;
+  /** ISO timestamp of the session's last record: what "most recent" is sorted by. */
+  last: string;
+  looked: number;
+  narrowed: number;
+  linesAvoided: number;
+  /** Calls that answered: rows carrying `inputTokens`. */
+  calls: number;
+  inputTokens: number;
+  /** Calls that did not answer - the count that says the service was down. */
+  unavailable: number;
+}
+
 export interface Summary {
   sessions: number;
   looked: number;
@@ -88,10 +103,13 @@ export interface Summary {
   inputTokens: number;
   reasons: Record<string, number>;
   confidences: number[];
+  /** Most recent first. The CLI cannot know which session is "this one", so it shows the order. */
+  perSession: SessionRow[];
 }
 
 export function summarise(records: readonly NarrowRecord[], sessions: number): Summary {
-  const s: Summary = { sessions, looked: records.length, narrowed: 0, linesAvoided: 0, inputTokens: 0, reasons: {}, confidences: [] };
+  const s: Summary = { sessions, looked: records.length, narrowed: 0, linesAvoided: 0, inputTokens: 0, reasons: {}, confidences: [], perSession: [] };
+  const rows = new Map<string, SessionRow>();
   for (const r of records) {
     s.inputTokens += r.inputTokens ?? 0;
     if (r.narrowed) {
@@ -101,7 +119,24 @@ export function summarise(records: readonly NarrowRecord[], sessions: number): S
     } else if (r.reason !== undefined) {
       s.reasons[r.reason] = (s.reasons[r.reason] ?? 0) + 1;
     }
+    let row = rows.get(r.sessionId);
+    if (row === undefined) {
+      row = { sessionId: r.sessionId, last: '', looked: 0, narrowed: 0, linesAvoided: 0, calls: 0, inputTokens: 0, unavailable: 0 };
+      rows.set(r.sessionId, row);
+    }
+    row.looked += 1;
+    if (r.narrowed) {
+      row.narrowed += 1;
+      row.linesAvoided += r.linesAvoided ?? 0;
+    }
+    if (typeof r.inputTokens === 'number') {
+      row.calls += 1;
+      row.inputTokens += r.inputTokens;
+    }
+    if (r.reason === 'unavailable') row.unavailable += 1;
+    if (typeof r.timestamp === 'string' && r.timestamp > row.last) row.last = r.timestamp;
   }
+  s.perSession = [...rows.values()].sort((a, b) => (a.last < b.last ? 1 : a.last > b.last ? -1 : 0));
   return s;
 }
 
@@ -156,6 +191,23 @@ export function renderReport(s: Summary, root: string): string {
     out.push('');
     out.push('  left alone, and why  (these are the denominator, not failures)');
     for (const [why, n] of reasons) out.push(`    ${String(n).padStart(4)}  ${why}`);
+  }
+
+  // One row per session, most recent first, so the task just finished is the top line
+  // and the total above is the sum of the column. Capped: an old project has hundreds
+  // of sessions and the report is read in a chat window.
+  if (s.perSession.length > 1) {
+    const MAX = 10;
+    out.push('');
+    out.push('  by session, most recent first' + (s.perSession.length > MAX ? `  (${MAX} of ${s.perSession.length})` : ''));
+    out.push('    when (UTC)        session   looked  narrowed   lines not read   Jev calls   Jev tokens   unavailable');
+    for (const row of s.perSession.slice(0, MAX)) {
+      const when = row.last === '' ? '?'.padEnd(16) : row.last.slice(0, 16).replace('T', ' ');
+      out.push(
+        `    ${when}  ${row.sessionId.slice(0, 8).padEnd(8)}  ${String(row.looked).padStart(6)}  ${String(row.narrowed).padStart(8)}   ` +
+          `${row.linesAvoided.toLocaleString('en-US').padStart(14)}   ${String(row.calls).padStart(9)}   ${row.inputTokens.toLocaleString('en-US').padStart(10)}   ${String(row.unavailable).padStart(11)}`,
+      );
+    }
   }
   return out.join('\n');
 }
