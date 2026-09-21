@@ -1,6 +1,6 @@
 {
   "name": "squint-hook",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "A Claude Code hook that narrows a Read of a large file to the part that answers what you asked, using TypeSafe's Jev. Measured: -36% cost on the reads it fires on, no answer lost.",
   "type": "module",
   "license": "MIT",

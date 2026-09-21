@@ -738,6 +738,22 @@ src/bin.ts        the executable, so cli.ts never has to spawn a process to test
 
 ---
 
+## Versions
+
+Every version is a git tag. What each one changed is stated with the measurement that
+motivated it, never without.
+
+| version | date | what changed | tests |
+|---|---|---|---:|
+| **0.1.0-beta.2** | 2026-09-21 | A ceiling on Jev calls per session (`maxCallsPerSession`, 50, refusal `budget-spent`). The installer splices its entry into `settings.json` byte for byte and verifies the splice. The band below the 400-line floor calibrated: 37/37 targets inside the window ([§2-bis](docs/evidence.md)). The ledger records who wrote the goal: measured on 457 real reads, 14% of goals were written by the harness, not the user ([§6-ter](docs/evidence.md)). Three ordering defects fixed. | 108 |
+| 0.1.0-beta.1 | 2026-09-21 | Beta. The hook decides before it reads: an excluded path is never opened (43 → 45 ms on a 40 MB file, was 89). `squint off` writes where the hook reads. The goal's age recorded in the ledger. | 85 |
+| 0.1.0-alpha | 2026-09-20 | The hook, the ledger, the installer, `/squint`, and the evidence: 184 paired runs, −47% new tokens and −37% cost on the reads it fires on, the placebo and stale-goal controls. | 61 |
+
+Beta means: measured, published, and used on one machine. Not yet: a third model, a
+second repository, or a rule that acts on the stale-goal measurements.
+
+---
+
 ## Credits
 
 The policy, its six refusal conditions and its thresholds are a port of the Read hook of
